@@ -17,6 +17,7 @@ model User {
   presentations   Presentation[]
   aiProviderConfigs AiProviderConfig[]
   themes          Theme[]
+  media           Media[]
 }
 
 model Presentation {
@@ -60,5 +61,19 @@ model AiProviderConfig {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, providerName])
+  @@index([userId])
+}
+
+model Media {
+  id           String   @id @default(uuid())
+  userId       String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }

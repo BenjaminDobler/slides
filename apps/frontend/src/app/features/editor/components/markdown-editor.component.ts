@@ -137,6 +137,40 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
         this.cursorSlideChanged.emit(slideIndex);
       }
     });
+
+    // Handle drag-and-drop of media items
+    const editorDom = this.editor.getDomNode();
+    editorDom.addEventListener('dragover', (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('application/x-media-insert')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        // Move cursor to drop position
+        const target = this.editor.getTargetAtClientPoint(e.clientX, e.clientY);
+        if (target?.position) {
+          this.editor.setPosition(target.position);
+        }
+      }
+    });
+    editorDom.addEventListener('drop', (e: DragEvent) => {
+      const markdown = e.dataTransfer?.getData('application/x-media-insert');
+      if (markdown) {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = this.editor.getTargetAtClientPoint(e.clientX, e.clientY);
+        if (target?.position) {
+          this.editor.executeEdits('media-drop', [{
+            range: {
+              startLineNumber: target.position.lineNumber,
+              startColumn: target.position.column,
+              endLineNumber: target.position.lineNumber,
+              endColumn: target.position.column,
+            },
+            text: markdown + '\n',
+          }]);
+        }
+        this.editor.focus();
+      }
+    });
   }
 
   private _lastCursorSlide = 0;
@@ -320,6 +354,16 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
 
   setValue(content: string): void {
     this.editor?.setValue(content);
+  }
+
+  insertAtCursor(text: string): void {
+    if (!this.editor) return;
+    const pos = this.editor.getPosition();
+    this.editor.executeEdits('media', [{
+      range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+      text: text + '\n',
+    }]);
+    this.editor.focus();
   }
 
   ngOnDestroy() {

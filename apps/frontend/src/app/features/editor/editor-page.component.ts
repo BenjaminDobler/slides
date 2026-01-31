@@ -45,6 +45,7 @@ import type { PresentationDto } from '@slides/shared-types';
             [selectedIndex]="currentSlideIndex()"
             [themeInput]="currentTheme()"
             (slideSelected)="onSlideSelected($event)"
+            (mediaInsert)="onMediaInsert($event)"
           />
         </div>
         <app-resize-divider (resized)="onResizeThumbnails($event)" />
@@ -206,6 +207,10 @@ export class EditorPageComponent implements OnInit {
   onThemeChanged(themeName: string) {
     this.currentTheme.set(themeName);
     this.scheduleAutoSave();
+  }
+
+  onMediaInsert(markdown: string) {
+    this.editor.insertAtCursor(markdown);
   }
 
   onAiContent(content: string) {

@@ -2,28 +2,36 @@ import { Component, Input, Output, EventEmitter, signal, ElementRef, ViewChild, 
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ParsedSlide } from '@slides/markdown-parser';
+import { MediaLibraryComponent } from './media-library.component';
 
 @Component({
   selector: 'app-slide-thumbnails',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MediaLibraryComponent],
   template: `
     <div class="thumbnails-container">
-      <div class="thumbnails-header">Slides</div>
-      <div class="thumbnails-list" #thumbList>
-        @for (slide of slides(); track $index) {
-          <div
-            class="thumbnail"
-            [class.active]="$index === currentIndex()"
-            (click)="selectSlide($index)"
-          >
-            <div class="thumbnail-number">{{ $index + 1 }}</div>
-            <div class="thumbnail-inner">
-              <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)" [style.transform]="'scale(' + thumbScale() + ')'"></div>
-            </div>
-          </div>
-        }
+      <div class="tab-bar">
+        <button class="tab" [class.active]="activeTab() === 'slides'" (click)="activeTab.set('slides')">Slides</button>
+        <button class="tab" [class.active]="activeTab() === 'library'" (click)="activeTab.set('library')">Library</button>
       </div>
+      @if (activeTab() === 'slides') {
+        <div class="thumbnails-list" #thumbList>
+          @for (slide of slides(); track $index) {
+            <div
+              class="thumbnail"
+              [class.active]="$index === currentIndex()"
+              (click)="selectSlide($index)"
+            >
+              <div class="thumbnail-number">{{ $index + 1 }}</div>
+              <div class="thumbnail-inner">
+                <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)" [style.transform]="'scale(' + thumbScale() + ')'"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <app-media-library (mediaInsert)="onMediaInsert($event)" />
+      }
     </div>
   `,
   styles: [`
@@ -34,14 +42,28 @@ import type { ParsedSlide } from '@slides/markdown-parser';
       flex-direction: column;
       background: #121a2e;
     }
-    .thumbnails-header {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8rem;
-      color: #a8a8b3;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .tab-bar {
+      display: flex;
       border-bottom: 1px solid #0f3460;
       flex-shrink: 0;
+    }
+    .tab {
+      flex: 1;
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #a8a8b3;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover { color: #fff; }
+    .tab.active {
+      color: #e94560;
+      border-bottom-color: #e94560;
     }
     .thumbnails-list {
       flex: 1;
@@ -98,22 +120,29 @@ import type { ParsedSlide } from '@slides/markdown-parser';
 export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
   thumbScale = signal(0.19);
+  activeTab = signal<'slides' | 'library'>('slides');
   private resizeObserver?: ResizeObserver;
 
   ngAfterViewInit() {
-    this.calcScale();
-    this.resizeObserver = new ResizeObserver(() => this.calcScale());
-    this.resizeObserver.observe(this.thumbListEl.nativeElement);
+    this.observeThumbList();
   }
 
   ngOnDestroy() {
     this.resizeObserver?.disconnect();
   }
 
+  private observeThumbList() {
+    if (!this.thumbListEl?.nativeElement) return;
+    this.calcScale();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = new ResizeObserver(() => this.calcScale());
+    this.resizeObserver.observe(this.thumbListEl.nativeElement);
+  }
+
   private calcScale() {
     const el = this.thumbListEl?.nativeElement;
     if (!el) return;
-    const availW = el.clientWidth - 16; // padding
+    const availW = el.clientWidth - 16;
     this.thumbScale.set(availW / 960);
   }
 
@@ -127,6 +156,7 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
     this.theme.set(value);
   }
   @Output() slideSelected = new EventEmitter<number>();
+  @Output() mediaInsert = new EventEmitter<string>();
 
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
@@ -141,5 +171,9 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   selectSlide(index: number) {
     this.currentIndex.set(index);
     this.slideSelected.emit(index);
+  }
+
+  onMediaInsert(markdown: string) {
+    this.mediaInsert.emit(markdown);
   }
 }

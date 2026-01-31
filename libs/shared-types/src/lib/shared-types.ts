@@ -108,3 +108,15 @@ export interface AiImproveDto {
   provider: string;
   instruction?: string;
 }
+
+// === Media ===
+
+export interface MediaDto {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
