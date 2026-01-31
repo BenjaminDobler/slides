@@ -5,11 +5,17 @@ import { Component, Output, EventEmitter, HostListener, signal } from '@angular/
   standalone: true,
   template: `<div class="divider" [class.active]="dragging()" (mousedown)="onMouseDown($event)"></div>`,
   styles: [`
-    .divider {
+    :host {
+      display: block;
       width: 5px;
+      flex-shrink: 0;
+      height: 100%;
+    }
+    .divider {
+      width: 100%;
+      height: 100%;
       cursor: col-resize;
       background: #0f3460;
-      flex-shrink: 0;
       transition: background 0.15s;
     }
     .divider:hover, .divider.active {
