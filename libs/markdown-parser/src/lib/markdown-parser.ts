@@ -23,12 +23,13 @@ const md = new MarkdownIt({
     }
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+        return `<pre class="hljs" data-lang="${md.utils.escapeHtml(lang)}"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`;
       } catch {
         // fallthrough
       }
     }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`;
+    const langAttr = lang ? ` data-lang="${md.utils.escapeHtml(lang)}"` : '';
+    return `<pre class="hljs"${langAttr}><code>${md.utils.escapeHtml(str)}</code></pre>`;
   },
 });
 
