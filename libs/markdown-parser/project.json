@@ -1,0 +1,19 @@
+{
+  "name": "markdown-parser",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/markdown-parser/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/markdown-parser",
+        "main": "libs/markdown-parser/src/index.ts",
+        "tsConfig": "libs/markdown-parser/tsconfig.lib.json",
+        "assets": ["libs/markdown-parser/*.md"]
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AiService } from '../../core/services/ai.service';
+import type { AiProviderConfigDto } from '@slides/shared-types';
+
+@Component({
+  selector: 'app-settings',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="container">
+      <div class="header">
+        <h1>Settings</h1>
+        <button class="btn-back" (click)="goBack()">&larr; Back</button>
+      </div>
+
+      <section>
+        <h2>AI Providers</h2>
+        <div class="provider-list">
+          @for (c of configs(); track c.id) {
+            <div class="provider-card">
+              <span>{{ c.providerName }} {{ c.model ? '(' + c.model + ')' : '' }}</span>
+              <button class="btn-delete" (click)="removeConfig(c.id)">Remove</button>
+            </div>
+          }
+        </div>
+
+        <div class="add-provider">
+          <h3>Add Provider</h3>
+          <select [(ngModel)]="newProvider">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+          <input type="password" [(ngModel)]="newApiKey" placeholder="API Key" />
+          <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
+          <button (click)="addConfig()">Add</button>
+        </div>
+      </section>
+    </div>
+  `,
+  styles: [`
+    .container { max-width: 600px; margin: 0 auto; padding: 2rem; color: #fff; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .btn-back { padding: 0.4rem 0.8rem; border: 1px solid #555; border-radius: 6px; background: transparent; color: #fff; cursor: pointer; }
+    section { background: #16213e; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
+    h2 { margin: 0 0 1rem; }
+    h3 { margin: 1rem 0 0.5rem; }
+    .provider-card { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #0f3460; border-radius: 6px; margin-bottom: 0.5rem; }
+    .btn-delete { background: transparent; border: none; color: #e94560; cursor: pointer; }
+    .add-provider { margin-top: 1rem; }
+    .add-provider select, .add-provider input { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; box-sizing: border-box; }
+    .add-provider button { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #e94560; color: #fff; cursor: pointer; }
+  `],
+})
+export class SettingsComponent implements OnInit {
+  configs = signal<AiProviderConfigDto[]>([]);
+  newProvider = 'openai';
+  newApiKey = '';
+  newModel = '';
+
+  constructor(private aiService: AiService, private router: Router) {}
+
+  ngOnInit() {
+    this.loadConfigs();
+  }
+
+  private loadConfigs() {
+    this.aiService.getConfigs().subscribe((c) => this.configs.set(c));
+  }
+
+  addConfig() {
+    if (!this.newApiKey) return;
+    this.aiService
+      .saveConfig({ providerName: this.newProvider, apiKey: this.newApiKey, model: this.newModel || undefined })
+      .subscribe(() => {
+        this.newApiKey = '';
+        this.newModel = '';
+        this.loadConfigs();
+      });
+  }
+
+  removeConfig(id: string) {
+    this.aiService.deleteConfig(id).subscribe(() => this.loadConfigs());
+  }
+
+  goBack() {
+    this.router.navigate(['/presentations']);
+  }
+}

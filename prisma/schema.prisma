@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  presentations   Presentation[]
+  aiProviderConfigs AiProviderConfig[]
+  themes          Theme[]
+}
+
+model Presentation {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  theme     String   @default("default")
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Theme {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  displayName String
+  cssContent  String   @db.Text
+  isDefault   Boolean  @default(false)
+  userId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AiProviderConfig {
+  id              String @id @default(uuid())
+  userId          String
+  providerName    String
+  apiKeyEncrypted String
+  model           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, providerName])
+  @@index([userId])
+}
