@@ -89,15 +89,20 @@ import type { PresentationDto } from '@slides/shared-types';
     </div>
   `,
   styles: [`
-    .editor-layout { display: flex; flex-direction: column; height: 100vh; background: #1a1a2e; }
-    .toolbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #16213e; border-bottom: 1px solid #0f3460; }
-    .title-input { flex: 1; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; font-size: 1rem; }
-    .btn-back, .btn-present, .btn-ai, .btn-export { padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; color: #fff; }
-    .btn-export { background: #0f3460; }
-    .btn-export:disabled { opacity: 0.6; cursor: default; }
-    .btn-back { background: #333; }
-    .btn-present { background: #2ecc71; }
-    .btn-ai { background: #e94560; }
+    .editor-layout { display: flex; flex-direction: column; height: 100vh; background: #090b11; }
+    .toolbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #111318; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .title-input { flex: 1; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); background: #1c1f26; color: #f8f9fa; font-size: 1rem; transition: border-color 0.15s; }
+    .title-input:focus { outline: none; border-color: #3b82f6; }
+    .btn-back, .btn-present, .btn-ai, .btn-export { padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; color: #f8f9fa; font-size: 0.85rem; transition: background 0.15s; }
+    .btn-export { background: #1c1f26; }
+    .btn-export:hover { background: #23262f; }
+    .btn-export:disabled { opacity: 0.5; cursor: default; }
+    .btn-back { background: #1c1f26; }
+    .btn-back:hover { background: #23262f; }
+    .btn-present { background: #22c55e; }
+    .btn-present:hover { background: #16a34a; }
+    .btn-ai { background: #3b82f6; }
+    .btn-ai:hover { background: #2563eb; }
     .main-area { display: flex; flex: 1; overflow: hidden; height: 0; }
     .main-area.dragging { user-select: none; }
     .pane { overflow: hidden; flex-shrink: 0; height: 100%; }
@@ -105,7 +110,7 @@ import type { PresentationDto } from '@slides/shared-types';
     .editor-pane { display: flex; flex-direction: column; }
     .editor-pane ::ng-deep app-markdown-editor { flex: 1; min-height: 0; }
     .preview-pane { min-width: 200px; }
-    .ai-pane { flex: 1; background: #16213e; border-left: 1px solid #0f3460; overflow-y: auto; min-width: 200px; }
+    .ai-pane { flex: 1; background: #111318; border-left: 1px solid rgba(255,255,255,0.08); overflow-y: auto; min-width: 200px; }
   `],
 })
 export class EditorPageComponent implements OnInit {

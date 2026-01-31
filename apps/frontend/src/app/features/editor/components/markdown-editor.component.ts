@@ -41,14 +41,14 @@ declare const monaco: any;
       align-items: center;
       gap: 2px;
       padding: 4px 8px;
-      background: #1e1e2e;
-      border-bottom: 1px solid #333;
+      background: #111318;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
     }
     .editor-toolbar button {
       background: transparent;
       border: 1px solid transparent;
-      color: #ccc;
+      color: #8b8d98;
       padding: 4px 8px;
       border-radius: 4px;
       cursor: pointer;
@@ -56,16 +56,17 @@ declare const monaco: any;
       line-height: 1;
       min-width: 28px;
       text-align: center;
+      transition: background 0.15s, color 0.15s;
     }
     .editor-toolbar button:hover {
-      background: #333;
-      border-color: #555;
-      color: #fff;
+      background: #23262f;
+      border-color: rgba(255,255,255,0.1);
+      color: #f8f9fa;
     }
     .separator {
       width: 1px;
       height: 18px;
-      background: #444;
+      background: rgba(255,255,255,0.1);
       margin: 0 4px;
     }
     .editor-container { flex: 1; min-height: 0; overflow: hidden; }

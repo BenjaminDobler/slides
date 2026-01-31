@@ -30,15 +30,16 @@ import { AuthService } from '../../core/services/auth.service';
     </div>
   `,
   styles: [`
-    .auth-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: #1a1a2e; }
-    .auth-card { background: #16213e; padding: 2rem; border-radius: 12px; width: 360px; color: #fff; }
+    .auth-container { display: flex; justify-content: center; align-items: center; height: 100vh; background: #090b11; }
+    .auth-card { background: #111318; padding: 2rem; border-radius: 12px; width: 360px; color: #f8f9fa; border: 1px solid rgba(255,255,255,0.08); }
     h1 { margin: 0 0 1.5rem; text-align: center; }
-    input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #333; border-radius: 6px; background: #0f3460; color: #fff; box-sizing: border-box; }
-    button { width: 100%; padding: 0.75rem; border: none; border-radius: 6px; background: #e94560; color: #fff; cursor: pointer; font-size: 1rem; }
-    button:hover { background: #c73a54; }
-    .error { color: #e94560; font-size: 0.9rem; }
-    .toggle { text-align: center; color: #a8a8b3; cursor: pointer; margin-top: 1rem; }
-    .toggle:hover { color: #fff; }
+    input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; background: #1c1f26; color: #f8f9fa; box-sizing: border-box; transition: border-color 0.15s; }
+    input:focus { outline: none; border-color: #3b82f6; }
+    button { width: 100%; padding: 0.75rem; border: none; border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer; font-size: 1rem; transition: background 0.15s; }
+    button:hover { background: #2563eb; }
+    .error { color: #ef4444; font-size: 0.9rem; }
+    .toggle { text-align: center; color: #8b8d98; cursor: pointer; margin-top: 1rem; }
+    .toggle:hover { color: #f8f9fa; }
   `],
 })
 export class LoginComponent {

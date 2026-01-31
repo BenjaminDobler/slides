@@ -33,17 +33,20 @@ import type { PresentationDto } from '@slides/shared-types';
     </div>
   `,
   styles: [`
-    .container { max-width: 900px; margin: 0 auto; padding: 2rem; color: #fff; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem; color: #f8f9fa; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-    .card { background: #16213e; padding: 1.5rem; border-radius: 10px; cursor: pointer; position: relative; }
-    .card:hover { background: #1a2744; }
+    .card { background: #111318; padding: 1.5rem; border-radius: 10px; cursor: pointer; position: relative; border: 1px solid rgba(255,255,255,0.08); transition: background 0.15s, border-color 0.15s; }
+    .card:hover { background: #23262f; border-color: rgba(255,255,255,0.15); }
     .card h3 { margin: 0 0 0.5rem; }
-    .meta { color: #a8a8b3; font-size: 0.85rem; }
-    .btn-primary { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #e94560; color: #fff; cursor: pointer; margin-right: 0.5rem; }
-    .btn-secondary { padding: 0.6rem 1.2rem; border: 1px solid #555; border-radius: 6px; background: transparent; color: #fff; cursor: pointer; margin-right: 0.5rem; }
-    .btn-delete { position: absolute; top: 0.5rem; right: 0.5rem; background: transparent; border: none; color: #e94560; cursor: pointer; }
-    .empty { color: #a8a8b3; text-align: center; grid-column: 1 / -1; }
+    .meta { color: #8b8d98; font-size: 0.85rem; }
+    .btn-primary { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer; margin-right: 0.5rem; transition: background 0.15s; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { padding: 0.6rem 1.2rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; background: transparent; color: #f8f9fa; cursor: pointer; margin-right: 0.5rem; transition: background 0.15s; }
+    .btn-secondary:hover { background: #23262f; }
+    .btn-delete { position: absolute; top: 0.5rem; right: 0.5rem; background: transparent; border: none; color: #ef4444; cursor: pointer; transition: color 0.15s; }
+    .btn-delete:hover { color: #dc2626; }
+    .empty { color: #8b8d98; text-align: center; grid-column: 1 / -1; }
   `],
 })
 export class PresentationListComponent implements OnInit {

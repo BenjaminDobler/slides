@@ -15,11 +15,11 @@ import { Component, Output, EventEmitter, HostListener, signal } from '@angular/
       width: 100%;
       height: 100%;
       cursor: col-resize;
-      background: #0f3460;
+      background: rgba(255,255,255,0.15);
       transition: background 0.15s;
     }
     .divider:hover, .divider.active {
-      background: #e94560;
+      background: #3b82f6;
     }
   `],
 })

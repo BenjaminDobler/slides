@@ -3,11 +3,12 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { height: 100%; font-family: 'Inter', sans-serif; background: #1a1a2e; color: #fff; }
+html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11; color: #f8f9fa; }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #16213e; }
-::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 4px; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111318; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 /* Slide columns layout — <!-- columns --> / <!-- split --> */
 .slide-columns {

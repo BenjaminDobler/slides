@@ -49,8 +49,8 @@ type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'none';
     .slide-layer { position: absolute; top: 0; left: 0; width: 960px; height: 600px; }
     .slide { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; overflow: hidden; }
     .controls { position: absolute; bottom: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 10; }
-    .slide-counter { color: #999; font-size: 0.9rem; }
-    .transition-picker select { background: rgba(0,0,0,0.5); color: #999; border: 1px solid #555; border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
+    .slide-counter { color: #8b8d98; font-size: 0.9rem; }
+    .transition-picker select { background: rgba(0,0,0,0.5); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
     .controls:hover .transition-picker select { opacity: 1; }
 
     /* Fade */

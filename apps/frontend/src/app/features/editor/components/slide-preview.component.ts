@@ -46,16 +46,17 @@ declare const mermaid: any;
   `,
   styles: [`
     :host { display: block; height: 100%; }
-    .preview-container { display: flex; flex-direction: column; height: 100%; background: #1a1a2e; }
-    .slide-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem; background: #16213e; flex-shrink: 0; }
-    .slide-nav button { background: #0f3460; border: none; color: #fff; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; }
+    .preview-container { display: flex; flex-direction: column; height: 100%; background: #090b11; }
+    .slide-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem; background: #111318; flex-shrink: 0; }
+    .slide-nav button { background: #1c1f26; border: none; color: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
+    .slide-nav button:hover { background: #23262f; }
     .slide-nav button:disabled { opacity: 0.3; cursor: default; }
-    .slide-nav span { color: #a8a8b3; font-size: 0.9rem; }
+    .slide-nav span { color: #8b8d98; font-size: 0.9rem; }
     .slide-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; min-height: 0; overflow: hidden; }
     .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; }
-    .slide-frame { width: 960px; height: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .slide-frame { width: 960px; height: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
     .slide-content { width: 960px; height: 600px; padding: 3rem; box-sizing: border-box; overflow: hidden; font-size: 1.5rem; cursor: text; }
-    .notes { padding: 0.75rem; background: #16213e; color: #a8a8b3; font-size: 0.85rem; flex-shrink: 0; }
+    .notes { padding: 0.75rem; background: #111318; color: #8b8d98; font-size: 0.85rem; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.08); }
   `],
 })
 export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterViewChecked, OnDestroy {

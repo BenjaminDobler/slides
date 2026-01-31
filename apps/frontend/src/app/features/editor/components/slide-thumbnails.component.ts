@@ -49,11 +49,11 @@ import { MediaLibraryComponent } from './media-library.component';
       height: 100%;
       display: flex;
       flex-direction: column;
-      background: #121a2e;
+      background: #090b11;
     }
     .tab-bar {
       display: flex;
-      border-bottom: 1px solid #0f3460;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
     }
     .tab {
@@ -62,17 +62,17 @@ import { MediaLibraryComponent } from './media-library.component';
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;
-      color: #a8a8b3;
+      color: #8b8d98;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       cursor: pointer;
       transition: color 0.15s, border-color 0.15s;
     }
-    .tab:hover { color: #fff; }
+    .tab:hover { color: #f8f9fa; }
     .tab.active {
-      color: #e94560;
-      border-bottom-color: #e94560;
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
     }
     .thumbnails-list {
       flex: 1;
@@ -83,24 +83,25 @@ import { MediaLibraryComponent } from './media-library.component';
       position: relative;
       margin-bottom: 0.5rem;
       border-radius: 6px;
-      border: 2px solid transparent;
+      border: 2px solid rgba(255,255,255,0.06);
       cursor: pointer;
       overflow: hidden;
       background: #fff;
       aspect-ratio: 16 / 10;
+      transition: border-color 0.15s;
     }
     .thumbnail:hover {
-      border-color: #0f3460;
+      border-color: rgba(255,255,255,0.2);
     }
     .thumbnail.active {
-      border-color: #e94560;
+      border-color: #3b82f6;
     }
     .thumbnail-number {
       position: absolute;
       top: 4px;
       left: 4px;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
+      background: rgba(0,0,0,0.7);
+      color: #f8f9fa;
       font-size: 0.65rem;
       padding: 1px 5px;
       border-radius: 3px;
@@ -125,8 +126,8 @@ import { MediaLibraryComponent } from './media-library.component';
       overflow: hidden;
     }
     .thumbnail.dragging { opacity: 0.4; }
-    .thumbnail.drop-above { border-top: 3px solid #e94560; }
-    .thumbnail.drop-below { border-bottom: 3px solid #e94560; }
+    .thumbnail.drop-above { border-top: 3px solid #3b82f6; }
+    .thumbnail.drop-below { border-bottom: 3px solid #3b82f6; }
   `],
 })
 export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {

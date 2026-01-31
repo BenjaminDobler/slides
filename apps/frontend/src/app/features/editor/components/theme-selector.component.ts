@@ -32,12 +32,13 @@ import type { ThemeDto } from '@slides/shared-types';
   `,
   styles: [`
     .theme-selector { display: flex; align-items: center; gap: 4px; }
-    select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; }
-    .btn-icon { background: transparent; border: 1px solid #444; color: #ccc; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; }
-    .btn-icon:hover { background: #333; color: #fff; }
-    .btn-delete:hover { color: #e94560; border-color: #e94560; }
-    .btn-add { color: #2ecc71; border-color: #2ecc71; }
-    .btn-add:hover { background: #2ecc71; color: #fff; }
+    select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); background: #1c1f26; color: #f8f9fa; transition: border-color 0.15s; }
+    select:focus { outline: none; border-color: #3b82f6; }
+    .btn-icon { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #8b8d98; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s; }
+    .btn-icon:hover { background: #23262f; color: #f8f9fa; }
+    .btn-delete:hover { color: #ef4444; border-color: #ef4444; }
+    .btn-add { color: #22c55e; border-color: #22c55e; }
+    .btn-add:hover { background: #22c55e; color: #fff; }
   `],
 })
 export class ThemeSelectorComponent {
