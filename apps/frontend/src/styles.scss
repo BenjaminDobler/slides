@@ -7,3 +7,47 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #1a1a2e
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #16213e; }
 ::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 4px; }
+
+/* Slide card grid — generated from lists where every item is **Title:** desc */
+.slide-card-grid {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.slide-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 1.2rem;
+  min-width: 0;
+}
+.slide-card-title {
+  font-weight: 600;
+  font-size: 1.05em;
+  margin-bottom: 0.4rem;
+}
+.slide-card-body {
+  font-size: 0.85em;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* Theme-aware card overrides */
+[data-theme="default"] .slide-card {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="default"] .slide-card-title { color: var(--slide-heading, #1a1a1a); }
+
+[data-theme="minimal"] .slide-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="corporate"] .slide-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: var(--slide-accent, #2b6cb0);
+  border-width: 1px 1px 1px 3px;
+}
+[data-theme="corporate"] .slide-card-title { color: var(--slide-heading, #1a365d); }

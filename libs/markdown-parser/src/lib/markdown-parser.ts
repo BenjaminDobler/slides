@@ -41,12 +41,37 @@ function extractNotes(markdown: string): { content: string; notes?: string } {
   return { content: markdown };
 }
 
+/**
+ * Transforms `<ul>` lists where every `<li>` matches "**Title:** description"
+ * into a horizontal card grid layout.
+ */
+function transformCardLists(html: string): string {
+  // Match <ul> blocks where ALL <li> items have the pattern <strong>Title:</strong> desc
+  return html.replace(/<ul>\n?((?:<li>[\s\S]*?<\/li>\n?)+)<\/ul>/g, (match, inner: string) => {
+    const items = [...inner.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1].trim());
+    // Check if every item starts with <strong>...<\/strong> followed by text
+    const allCards = items.every((item) => /^<strong>.+?<\/strong>/.test(item));
+    if (!allCards) return match;
+
+    const cards = items.map((item) => {
+      const titleMatch = item.match(/^<strong>(.+?)<\/strong>\s*([\s\S]*)/);
+      if (!titleMatch) return `<div class="slide-card">${item}</div>`;
+      const title = titleMatch[1].replace(/:$/, '');
+      const desc = titleMatch[2];
+      return `<div class="slide-card"><div class="slide-card-title">${title}</div><div class="slide-card-body">${desc}</div></div>`;
+    });
+
+    return `<div class="slide-card-grid">${cards.join('\n')}</div>`;
+  });
+}
+
 export function parsePresentation(markdown: string): ParsedPresentation {
   const rawSlides = markdown.split(/\n---\n/);
 
   const slides: ParsedSlide[] = rawSlides.map((raw) => {
     const { content, notes } = extractNotes(raw.trim());
-    const html = md.render(content);
+    let html = md.render(content);
+    html = transformCardLists(html);
     return { content, html, notes };
   });
 
