@@ -12,11 +12,19 @@ export class OpenAIProvider implements AIProvider {
     const { default: OpenAI } = await import('openai');
     const client = new OpenAI({ apiKey: this.apiKey });
 
+    const userContent: any[] = [{ type: 'text', text: prompt }];
+    if (options?.imageBase64) {
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: `data:${options.imageMimeType || 'image/png'};base64,${options.imageBase64}` },
+      });
+    }
+
     const response = await client.chat.completions.create({
       model: options?.model || 'gpt-4o',
       messages: [
         { role: 'system', content: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.' },
-        { role: 'user', content: prompt },
+        { role: 'user', content: userContent },
       ],
       temperature: options?.temperature ?? 0.7,
       max_tokens: options?.maxTokens ?? 2000,

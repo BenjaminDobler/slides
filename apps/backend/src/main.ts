@@ -14,7 +14,7 @@ import mediaRoutes from './routes/media.routes';
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded media files
 const uploadsDir = path.resolve(process.cwd(), 'uploads');

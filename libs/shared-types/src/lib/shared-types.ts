@@ -130,6 +130,19 @@ export interface AiOutlineToSlidesDto {
   provider: string;
 }
 
+export interface AiVisualReviewDto {
+  slideContent: string;
+  screenshot: string; // base64-encoded PNG
+  provider: string;
+}
+
+export interface AiVisualImproveDto {
+  slideContent: string;
+  screenshot: string; // base64-encoded PNG
+  provider: string;
+  instruction?: string;
+}
+
 // === Media ===
 
 export interface MediaDto {

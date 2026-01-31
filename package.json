@@ -28,6 +28,7 @@
     "express": "^4.22.1",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.11.1",
+    "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.3",
     "markdown-it": "^14.1.0",
     "mermaid": "^11.12.2",

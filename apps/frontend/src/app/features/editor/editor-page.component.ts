@@ -71,7 +71,9 @@ import type { PresentationDto } from '@slides/shared-types';
           <div class="pane ai-pane">
             <app-ai-assistant-panel
               [currentSlideContentInput]="currentSlideContent()"
+              [screenshotProvider]="captureSlideScreenshot"
               (contentGenerated)="onAiContent($event)"
+              (slideContentGenerated)="onAiSlideContent($event)"
               (themeGenerated)="onThemeChanged($event)"
               (notesGenerated)="onAiNotes($event)"
               (diagramGenerated)="onAiDiagram($event)"
@@ -101,6 +103,7 @@ import type { PresentationDto } from '@slides/shared-types';
 })
 export class EditorPageComponent implements OnInit {
   @ViewChild(MarkdownEditorComponent) editor!: MarkdownEditorComponent;
+  @ViewChild(SlidePreviewComponent) slidePreview!: SlidePreviewComponent;
 
   presentationId = '';
   title = '';
@@ -234,8 +237,21 @@ export class EditorPageComponent implements OnInit {
   }
 
   onAiContent(content: string) {
-    this.editor.setValue(content);
+    this.editor.replaceAll(content);
     this.onContentChange(content);
+  }
+
+  onAiSlideContent(slideMarkdown: string) {
+    // Replace only the current slide, preserving the rest of the presentation
+    const markdown = this.content();
+    const rawSlides = markdown.split('\n---\n');
+    const idx = this.currentSlideIndex();
+    if (idx < rawSlides.length) {
+      rawSlides[idx] = '\n' + slideMarkdown.trim() + '\n';
+      const newContent = rawSlides.join('\n---\n');
+      this.editor.replaceAll(newContent);
+      this.onContentChange(newContent);
+    }
   }
 
   onAiNotes(event: { slideIndex: number; notes: string }) {
@@ -249,10 +265,14 @@ export class EditorPageComponent implements OnInit {
       rawSlides[idx] = rawSlides[idx].replace(/\n*<!--\s*notes\s*-->[\s\S]*?<!--\s*\/notes\s*-->/i, '');
       rawSlides[idx] = rawSlides[idx].trimEnd() + notesBlock;
       const newContent = rawSlides.join('\n---\n');
-      this.editor.setValue(newContent);
+      this.editor.replaceAll(newContent);
       this.onContentChange(newContent);
     }
   }
+
+  captureSlideScreenshot = (): Promise<string> => {
+    return this.slidePreview.captureScreenshot();
+  };
 
   onAiDiagram(mermaid: string) {
     const block = '\n```mermaid\n' + mermaid + '\n```\n';

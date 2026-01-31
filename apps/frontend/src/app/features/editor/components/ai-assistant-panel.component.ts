@@ -71,6 +71,18 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
                 {{ loading() ? 'Rewriting...' : 'Rewrite' }}
               </button>
             </div>
+            @if (screenshotProvider) {
+              <div class="visual-section">
+                <span class="section-label">Visual AI (uses screenshot)</span>
+                <button class="btn-visual" (click)="visualReview()" [disabled]="loading()">
+                  {{ loading() ? 'Reviewing...' : 'Review Slide' }}
+                </button>
+                <textarea [(ngModel)]="visualInstruction" placeholder="Optional: specific instruction for improvement..." rows="2"></textarea>
+                <button class="btn-visual" (click)="visualImprove()" [disabled]="loading()">
+                  {{ loading() ? 'Improving...' : 'Improve Slide (Visual)' }}
+                </button>
+              </div>
+            }
           </div>
           @if (enhanceResult()) {
             <div class="result">
@@ -126,14 +138,20 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
     .rewrite-row { display: flex; gap: 0.5rem; }
     .rewrite-row select { flex: 1; }
     .rewrite-row button { flex-shrink: 0; }
+    .visual-section { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #333; }
+    .section-label { font-size: 0.75rem; color: #a8a8b3; text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-visual { padding: 0.5rem; border: none; border-radius: 6px; background: #0f7b6c; color: #fff; cursor: pointer; font-size: 0.85rem; }
+    .btn-visual:disabled { opacity: 0.5; }
   `],
 })
 export class AiAssistantPanelComponent {
   @Input() set currentSlideContentInput(value: string) {
     this._currentSlideContent.set(value || '');
   }
+  @Input() screenshotProvider: (() => Promise<string>) | null = null;
   _currentSlideContent = signal('');
   @Output() contentGenerated = new EventEmitter<string>();
+  @Output() slideContentGenerated = new EventEmitter<string>();
   @Output() themeGenerated = new EventEmitter<string>();
   @Output() notesGenerated = new EventEmitter<{ slideIndex: number; notes: string }>();
   @Output() diagramGenerated = new EventEmitter<string>();
@@ -151,6 +169,7 @@ export class AiAssistantPanelComponent {
   // Enhance mode
   diagramPrompt = '';
   rewriteAudience = 'technical';
+  visualInstruction = '';
   enhanceResult = signal('');
   enhanceResultLabel = signal('');
   private enhanceType = '';
@@ -250,6 +269,50 @@ export class AiAssistantPanelComponent {
     });
   }
 
+  async visualReview() {
+    if (!this.selectedProvider || !this.screenshotProvider) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.enhanceResult.set('');
+    try {
+      const screenshot = await this.screenshotProvider();
+      this.aiService.visualReview(this._currentSlideContent(), screenshot, this.selectedProvider).subscribe({
+        next: (res) => {
+          this.enhanceResult.set(res.review);
+          this.enhanceResultLabel.set('Visual review:');
+          this.enhanceType = 'review';
+          this.loading.set(false);
+        },
+        error: (err) => { this.error.set(err?.error?.error || 'Review failed'); this.loading.set(false); },
+      });
+    } catch {
+      this.error.set('Failed to capture screenshot');
+      this.loading.set(false);
+    }
+  }
+
+  async visualImprove() {
+    if (!this.selectedProvider || !this.screenshotProvider) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.enhanceResult.set('');
+    try {
+      const screenshot = await this.screenshotProvider();
+      this.aiService.visualImprove(this._currentSlideContent(), screenshot, this.selectedProvider, this.visualInstruction || undefined).subscribe({
+        next: (res) => {
+          this.enhanceResult.set(res.content);
+          this.enhanceResultLabel.set('Improved slide content:');
+          this.enhanceType = 'rewrite';
+          this.loading.set(false);
+        },
+        error: (err) => { this.error.set(err?.error?.error || 'Improve failed'); this.loading.set(false); },
+      });
+    } catch {
+      this.error.set('Failed to capture screenshot');
+      this.loading.set(false);
+    }
+  }
+
   applyEnhanceResult() {
     const result = this.enhanceResult();
     if (!result) return;
@@ -258,7 +321,9 @@ export class AiAssistantPanelComponent {
     } else if (this.enhanceType === 'diagram') {
       this.diagramGenerated.emit(result);
     } else if (this.enhanceType === 'rewrite') {
-      this.contentGenerated.emit(result);
+      this.slideContentGenerated.emit(result);
+    } else if (this.enhanceType === 'review') {
+      // Review is just text feedback, nothing to apply
     }
     this.enhanceResult.set('');
   }

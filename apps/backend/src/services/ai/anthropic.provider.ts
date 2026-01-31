@@ -11,11 +11,20 @@ export class AnthropicProvider implements AIProvider {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey: this.apiKey });
 
+    const userContent: any[] = [];
+    if (options?.imageBase64) {
+      userContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: options.imageMimeType || 'image/png', data: options.imageBase64 },
+      });
+    }
+    userContent.push({ type: 'text', text: prompt });
+
     const response = await client.messages.create({
       model: options?.model || 'claude-sonnet-4-20250514',
       max_tokens: options?.maxTokens ?? 2000,
       system: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: userContent }],
     });
 
     const block = response.content[0];

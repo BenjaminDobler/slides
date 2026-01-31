@@ -50,4 +50,12 @@ export class AiService {
   outlineToSlides(outline: string, provider: string): Observable<{ content: string }> {
     return this.http.post<{ content: string }>('/api/ai/outline-to-slides', { outline, provider });
   }
+
+  visualReview(slideContent: string, screenshot: string, provider: string): Observable<{ review: string }> {
+    return this.http.post<{ review: string }>('/api/ai/visual-review', { slideContent, screenshot, provider });
+  }
+
+  visualImprove(slideContent: string, screenshot: string, provider: string, instruction?: string): Observable<{ content: string }> {
+    return this.http.post<{ content: string }>('/api/ai/visual-improve', { slideContent, screenshot, provider, instruction });
+  }
 }

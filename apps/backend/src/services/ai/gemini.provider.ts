@@ -16,8 +16,15 @@ export class GeminiProvider implements AIProvider {
       systemInstruction: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.',
     });
 
+    const parts: any[] = [{ text: prompt }];
+    if (options?.imageBase64) {
+      parts.push({
+        inlineData: { mimeType: options.imageMimeType || 'image/png', data: options.imageBase64 },
+      });
+    }
+
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: [{ role: 'user', parts }],
       generationConfig: {
         temperature: options?.temperature ?? 0.7,
         maxOutputTokens: options?.maxTokens ?? 2000,

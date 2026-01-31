@@ -3,7 +3,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../utils/prisma';
 import { decrypt } from '../utils/encryption';
 import { createAIProvider } from '../services/ai/provider-factory';
-import type { AiGenerateDto, AiImproveDto, AiSuggestStyleDto, AiGenerateThemeDto, AiSpeakerNotesDto, AiGenerateDiagramDto, AiRewriteDto, AiOutlineToSlidesDto } from '@slides/shared-types';
+import type { AiGenerateDto, AiImproveDto, AiSuggestStyleDto, AiGenerateThemeDto, AiSpeakerNotesDto, AiGenerateDiagramDto, AiRewriteDto, AiOutlineToSlidesDto, AiVisualReviewDto, AiVisualImproveDto } from '@slides/shared-types';
 
 const router = Router();
 router.use(authMiddleware);
@@ -174,6 +174,72 @@ You can use these layout directives:
 - <!-- columns --> / <!-- split --> for two-column layouts
 - Lists where every item starts with **Title:** description will render as card grids
 Make each slide focused and visually appealing. Return only the markdown.`,
+    });
+    res.json({ content });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/visual-review', async (req: AuthRequest, res: Response) => {
+  try {
+    const { slideContent, screenshot, provider } = req.body as AiVisualReviewDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Here is a screenshot of a presentation slide and its markdown source.
+
+Markdown source:
+\`\`\`
+${slideContent}
+\`\`\`
+
+Please review this slide visually. Comment on:
+- Layout and spacing issues (text overflow, cramped cards, poor alignment)
+- Content density (too much text for one slide?)
+- Readability and visual hierarchy
+- Suggestions for improvement
+
+Be specific and actionable.`;
+
+    const review = await ai.generateContent(prompt, {
+      systemPrompt: 'You are a presentation design expert. Review the slide screenshot and provide specific, actionable feedback. Be concise.',
+      imageBase64: screenshot,
+      imageMimeType: 'image/png',
+      maxTokens: 1500,
+    });
+    res.json({ review });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/visual-improve', async (req: AuthRequest, res: Response) => {
+  try {
+    const { slideContent, screenshot, provider, instruction } = req.body as AiVisualImproveDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Here is a screenshot of a presentation slide and its markdown source.
+
+Markdown source:
+\`\`\`
+${slideContent}
+\`\`\`
+
+${instruction ? `Instruction: ${instruction}\n\n` : ''}Improve this slide. If the content is too dense, split it into multiple slides separated by '---'.
+Fix any visual issues you see in the screenshot (overflow, cramped layout, poor hierarchy).
+
+Available layout directives:
+- <!-- columns --> / <!-- split --> for two-column layouts
+- Lists where every item starts with **Title:** description will render as card grids
+- \`\`\`mermaid blocks for diagrams
+
+Return ONLY the improved markdown, nothing else.`;
+
+    const content = await ai.generateContent(prompt, {
+      systemPrompt: 'You are a presentation design expert. Improve the slide content based on the visual screenshot. Return only markdown. If the slide is too dense, split into multiple slides separated by ---.',
+      imageBase64: screenshot,
+      imageMimeType: 'image/png',
+      maxTokens: 3000,
     });
     res.json({ content });
   } catch (err: any) {

@@ -3,6 +3,9 @@ export interface GenerateOptions {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
+  /** Base64-encoded image to include with the prompt (for vision models) */
+  imageBase64?: string;
+  imageMimeType?: string;
 }
 
 export interface AIProvider {

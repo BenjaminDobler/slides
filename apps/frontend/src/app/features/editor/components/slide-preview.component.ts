@@ -217,6 +217,15 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
     });
   }
 
+  async captureScreenshot(): Promise<string> {
+    const el = this.slideContentEl?.nativeElement?.parentElement; // .slide-frame
+    if (!el) return '';
+    const { default: html2canvas } = await import('html2canvas');
+    const canvas = await html2canvas(el, { scale: 1, useCORS: true, backgroundColor: null });
+    // Return base64 without the data:image/png;base64, prefix
+    return canvas.toDataURL('image/png').split(',')[1];
+  }
+
   prev() {
     if (this.currentIndex() > 0) {
       this.currentIndex.update((i) => i - 1);

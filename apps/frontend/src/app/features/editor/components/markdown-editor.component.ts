@@ -368,6 +368,17 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
     this.editor?.setValue(content);
   }
 
+  /** Replace all content but keep undo stack (Ctrl+Z works) */
+  replaceAll(content: string): void {
+    if (!this.editor) return;
+    const model = this.editor.getModel();
+    const fullRange = model.getFullModelRange();
+    this.editor.executeEdits('ai', [{
+      range: fullRange,
+      text: content,
+    }]);
+  }
+
   revealLine(lineNumber: number): void {
     if (!this.editor) return;
     this.editor.setPosition({ lineNumber, column: 1 });
