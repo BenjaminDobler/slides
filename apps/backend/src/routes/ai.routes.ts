@@ -8,6 +8,28 @@ import type { AiGenerateDto, AiImproveDto, AiSuggestStyleDto, AiGenerateThemeDto
 const router = Router();
 router.use(authMiddleware);
 
+const SLIDE_FORMAT_GUIDE = `
+SUPPORTED MARKDOWN SYNTAX:
+- Standard markdown: headings (#, ##, ###), bold, italic, lists, links, images, code blocks, tables
+- Slide separator: a line containing only '---' separates slides
+- Two-column layout: use <!-- columns --> to start, <!-- split --> to divide left/right, end with a blank line
+- Card grid layout: a list where every item starts with **Title:** description renders as a styled card grid
+- Mermaid diagrams: use \`\`\`mermaid code blocks (flowchart, sequenceDiagram, pie, graph, etc.)
+- Speaker notes: wrap in <!-- notes --> and <!-- /notes --> (not shown in presentation)
+
+EXAMPLE - Two columns:
+<!-- columns -->
+Left column content
+
+<!-- split -->
+Right column content
+
+EXAMPLE - Card grid:
+- **Feature A:** Description of feature A
+- **Feature B:** Description of feature B
+- **Feature C:** Description of feature C
+`.trim();
+
 async function getProviderForUser(userId: string, providerName: string) {
   const cfg = await prisma.aiProviderConfig.findUnique({
     where: { userId_providerName: { userId, providerName } },
@@ -25,9 +47,10 @@ router.post('/generate', async (req: AuthRequest, res: Response) => {
     const ai = await getProviderForUser(req.userId!, provider);
 
     const systemPrompt = `You are a presentation assistant. Generate markdown slides separated by '---'.
-Each slide should be concise. Use headings, bullet points, and code blocks.
-You can use mermaid diagrams with \`\`\`mermaid blocks.
-${context ? `Context about the presentation:\n${context}` : ''}`;
+Each slide should be concise. Use the full range of supported layout features when appropriate.
+
+${SLIDE_FORMAT_GUIDE}
+${context ? `\nContext about the presentation:\n${context}` : ''}`;
 
     const content = await ai.generateContent(prompt, { systemPrompt });
     res.json({ content });
@@ -153,7 +176,7 @@ router.post('/rewrite', async (req: AuthRequest, res: Response) => {
 
     const prompt = `Rewrite this slide content for a ${audience} audience:\n\n${slideContent}\n\nReturn only the rewritten markdown.`;
     const content = await ai.generateContent(prompt, {
-      systemPrompt: 'You are a presentation expert. Rewrite slide content for the specified audience while preserving the structure (headings, bullet points, code blocks). Return only markdown.',
+      systemPrompt: `You are a presentation expert. Rewrite slide content for the specified audience while preserving the structure. Return only markdown.\n\n${SLIDE_FORMAT_GUIDE}`,
     });
     res.json({ content });
   } catch (err: any) {
@@ -169,11 +192,9 @@ router.post('/outline-to-slides', async (req: AuthRequest, res: Response) => {
     const prompt = `Convert this outline into a full presentation:\n\n${outline}`;
     const content = await ai.generateContent(prompt, {
       systemPrompt: `You are a presentation assistant. Convert the outline into well-structured markdown slides separated by '---'.
-Use headings, bullet points, code blocks, and mermaid diagrams where appropriate.
-You can use these layout directives:
-- <!-- columns --> / <!-- split --> for two-column layouts
-- Lists where every item starts with **Title:** description will render as card grids
-Make each slide focused and visually appealing. Return only the markdown.`,
+Make each slide focused and visually appealing. Use the full range of layout features when appropriate. Return only the markdown.
+
+${SLIDE_FORMAT_GUIDE}`,
     });
     res.json({ content });
   } catch (err: any) {
@@ -228,10 +249,7 @@ ${slideContent}
 ${instruction ? `Instruction: ${instruction}\n\n` : ''}Improve this slide. If the content is too dense, split it into multiple slides separated by '---'.
 Fix any visual issues you see in the screenshot (overflow, cramped layout, poor hierarchy).
 
-Available layout directives:
-- <!-- columns --> / <!-- split --> for two-column layouts
-- Lists where every item starts with **Title:** description will render as card grids
-- \`\`\`mermaid blocks for diagrams
+${SLIDE_FORMAT_GUIDE}
 
 Return ONLY the improved markdown, nothing else.`;
 
