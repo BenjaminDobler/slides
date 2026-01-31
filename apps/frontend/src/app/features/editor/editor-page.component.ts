@@ -63,6 +63,7 @@ import type { PresentationDto } from '@slides/shared-types';
             [themeInput]="currentTheme()"
             [selectedIndex]="currentSlideIndex()"
             (indexChanged)="onSlideSelected($event)"
+            (navigateToLine)="onNavigateToLine($event)"
           />
         </div>
         @if (showAi()) {
@@ -207,6 +208,10 @@ export class EditorPageComponent implements OnInit {
   onThemeChanged(themeName: string) {
     this.currentTheme.set(themeName);
     this.scheduleAutoSave();
+  }
+
+  onNavigateToLine(line: number) {
+    this.editor.revealLine(line);
   }
 
   onMediaInsert(markdown: string) {

@@ -54,7 +54,7 @@ declare const mermaid: any;
     .slide-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; min-height: 0; overflow: hidden; }
     .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; }
     .slide-frame { width: 960px; height: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-    .slide-content { width: 960px; height: 600px; padding: 3rem; box-sizing: border-box; overflow: hidden; font-size: 1.5rem; }
+    .slide-content { width: 960px; height: 600px; padding: 3rem; box-sizing: border-box; overflow: hidden; font-size: 1.5rem; cursor: text; }
     .notes { padding: 0.75rem; background: #16213e; color: #a8a8b3; font-size: 0.85rem; flex-shrink: 0; }
   `],
 })
@@ -76,6 +76,7 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
     }
   }
   @Output() indexChanged = new EventEmitter<number>();
+  @Output() navigateToLine = new EventEmitter<number>();
 
   @ViewChild('slideContent') slideContentEl!: ElementRef;
   @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
@@ -102,6 +103,22 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
     this.calcScale();
     this.resizeObserver = new ResizeObserver(() => this.calcScale());
     this.resizeObserver.observe(this.slideAreaEl.nativeElement);
+
+    // Double-click on slide content → navigate to source line in editor
+    this.slideContentEl.nativeElement.addEventListener('dblclick', (e: MouseEvent) => {
+      let el = e.target as HTMLElement | null;
+      while (el && el !== this.slideContentEl.nativeElement) {
+        const line = el.getAttribute('data-source-line');
+        if (line !== null) {
+          const slide = this.currentSlide();
+          const offset = slide ? slide.lineOffset : 0;
+          // data-source-line is 0-based relative to slide, editor lines are 1-based
+          this.navigateToLine.emit(offset + parseInt(line, 10) + 1);
+          return;
+        }
+        el = el.parentElement;
+      }
+    });
   }
 
   ngOnDestroy() {

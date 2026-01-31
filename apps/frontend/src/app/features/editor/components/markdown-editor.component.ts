@@ -368,6 +368,13 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
     this.editor?.setValue(content);
   }
 
+  revealLine(lineNumber: number): void {
+    if (!this.editor) return;
+    this.editor.setPosition({ lineNumber, column: 1 });
+    this.editor.revealLineInCenter(lineNumber);
+    this.editor.focus();
+  }
+
   insertAtCursor(text: string): void {
     if (!this.editor) return;
     const pos = this.editor.getPosition();
