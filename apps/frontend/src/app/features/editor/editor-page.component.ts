@@ -50,6 +50,9 @@ import type { PresentationDto } from '@slides/shared-types';
             [themeInput]="currentTheme()"
             (slideSelected)="onSlideSelected($event)"
             (slideReordered)="onSlideReordered($event)"
+            (slideDeleted)="onSlideDeleted($event)"
+            (slideDuplicated)="onSlideDuplicated($event)"
+            (slideAdded)="onSlideAdded($event)"
             (mediaInsert)="onMediaInsert($event)"
           />
         </div>
@@ -193,6 +196,40 @@ export class EditorPageComponent implements OnInit {
     this.onContentChange(newContent);
     this.currentSlideIndex.set(event.to);
     this.updateCurrentSlideContent(event.to);
+  }
+
+  onSlideDeleted(index: number) {
+    const rawSlides = this.content().split('\n---\n');
+    if (rawSlides.length <= 1) return; // don't delete the last slide
+    rawSlides.splice(index, 1);
+    const newContent = rawSlides.join('\n---\n');
+    this.editor.replaceAll(newContent);
+    this.onContentChange(newContent);
+    const newIndex = Math.min(index, rawSlides.length - 1);
+    this.currentSlideIndex.set(newIndex);
+    this.updateCurrentSlideContent(newIndex);
+  }
+
+  onSlideDuplicated(index: number) {
+    const rawSlides = this.content().split('\n---\n');
+    if (index < 0 || index >= rawSlides.length) return;
+    rawSlides.splice(index + 1, 0, rawSlides[index]);
+    const newContent = rawSlides.join('\n---\n');
+    this.editor.replaceAll(newContent);
+    this.onContentChange(newContent);
+    this.currentSlideIndex.set(index + 1);
+    this.updateCurrentSlideContent(index + 1);
+  }
+
+  onSlideAdded(event: { index: number; position: 'above' | 'below' }) {
+    const rawSlides = this.content().split('\n---\n');
+    const insertAt = event.position === 'above' ? event.index : event.index + 1;
+    rawSlides.splice(insertAt, 0, '\n# New Slide\n');
+    const newContent = rawSlides.join('\n---\n');
+    this.editor.replaceAll(newContent);
+    this.onContentChange(newContent);
+    this.currentSlideIndex.set(insertAt);
+    this.updateCurrentSlideContent(insertAt);
   }
 
   onCursorSlideChanged(index: number) {

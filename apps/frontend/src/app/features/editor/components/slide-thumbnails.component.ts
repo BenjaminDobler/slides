@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ParsedSlide } from '@slides/markdown-parser';
@@ -25,6 +25,7 @@ import { MediaLibraryComponent } from './media-library.component';
               [class.drop-below]="dropIndex() === $index && dragIndex() !== null && dragIndex()! < $index"
               draggable="true"
               (click)="selectSlide($index)"
+              (contextmenu)="onContextMenu($event, $index)"
               (dragstart)="onDragStart($event, $index)"
               (dragover)="onDragOver($event, $index)"
               (dragleave)="onDragLeave()"
@@ -42,6 +43,15 @@ import { MediaLibraryComponent } from './media-library.component';
         <app-media-library (mediaInsert)="onMediaInsert($event)" />
       }
     </div>
+    @if (contextMenuVisible()) {
+      <div class="context-menu" [style.top.px]="contextMenuPos().y" [style.left.px]="contextMenuPos().x">
+        <button (click)="ctxAddAbove()">Add slide above</button>
+        <button (click)="ctxAddBelow()">Add slide below</button>
+        <button (click)="ctxDuplicate()">Duplicate</button>
+        <div class="ctx-separator"></div>
+        <button class="ctx-danger" (click)="ctxDelete()">Delete</button>
+      </div>
+    }
   `,
   styles: [`
     :host { display: block; height: 100%; }
@@ -128,6 +138,33 @@ import { MediaLibraryComponent } from './media-library.component';
     .thumbnail.dragging { opacity: 0.4; }
     .thumbnail.drop-above { border-top: 3px solid #3b82f6; }
     .thumbnail.drop-below { border-bottom: 3px solid #3b82f6; }
+    .context-menu {
+      position: fixed;
+      z-index: 1000;
+      background: #1c1f26;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .context-menu button {
+      display: block;
+      width: 100%;
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: #f8f9fa;
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .context-menu button:hover { background: #23262f; }
+    .context-menu .ctx-danger { color: #ef4444; }
+    .context-menu .ctx-danger:hover { background: rgba(239,68,68,0.15); }
+    .ctx-separator { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0; }
   `],
 })
 export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
@@ -170,6 +207,9 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   }
   @Output() slideSelected = new EventEmitter<number>();
   @Output() slideReordered = new EventEmitter<{ from: number; to: number }>();
+  @Output() slideDeleted = new EventEmitter<number>();
+  @Output() slideDuplicated = new EventEmitter<number>();
+  @Output() slideAdded = new EventEmitter<{ index: number; position: 'above' | 'below' }>();
   @Output() mediaInsert = new EventEmitter<string>();
 
   slides = signal<ParsedSlide[]>([]);
@@ -177,6 +217,9 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   theme = signal('default');
   dragIndex = signal<number | null>(null);
   dropIndex = signal<number | null>(null);
+  contextMenuVisible = signal(false);
+  contextMenuPos = signal({ x: 0, y: 0 });
+  private contextMenuIndex = 0;
 
   constructor(private sanitizer: DomSanitizer) {}
 
@@ -228,5 +271,40 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   onDragEnd() {
     this.dragIndex.set(null);
     this.dropIndex.set(null);
+  }
+
+  // --- Context menu ---
+
+  onContextMenu(event: MouseEvent, index: number) {
+    event.preventDefault();
+    this.contextMenuIndex = index;
+    this.contextMenuPos.set({ x: event.clientX, y: event.clientY });
+    this.contextMenuVisible.set(true);
+    this.selectSlide(index);
+  }
+
+  @HostListener('document:click')
+  closeContextMenu() {
+    this.contextMenuVisible.set(false);
+  }
+
+  ctxAddAbove() {
+    this.slideAdded.emit({ index: this.contextMenuIndex, position: 'above' });
+    this.contextMenuVisible.set(false);
+  }
+
+  ctxAddBelow() {
+    this.slideAdded.emit({ index: this.contextMenuIndex, position: 'below' });
+    this.contextMenuVisible.set(false);
+  }
+
+  ctxDuplicate() {
+    this.slideDuplicated.emit(this.contextMenuIndex);
+    this.contextMenuVisible.set(false);
+  }
+
+  ctxDelete() {
+    this.slideDeleted.emit(this.contextMenuIndex);
+    this.contextMenuVisible.set(false);
   }
 }
