@@ -65,12 +65,38 @@ function transformCardLists(html: string): string {
   });
 }
 
+/**
+ * Renders slide markdown to HTML, processing <!-- columns --> / <!-- split -->
+ * directives into a two-column flex layout.
+ */
+function renderSlideMarkdown(content: string): string {
+  const colRegex = /<!--\s*columns\s*-->([\s\S]*?)<!--\s*split\s*-->([\s\S]*?)(?:<!--\s*\/columns\s*-->|$)/i;
+  const match = content.match(colRegex);
+
+  if (!match) {
+    return md.render(content);
+  }
+
+  const before = content.slice(0, match.index).trim();
+  const left = match[1].trim();
+  const right = match[2].trim();
+  const afterIdx = match.index! + match[0].length;
+  const after = content.slice(afterIdx).trim();
+
+  let html = '';
+  if (before) html += md.render(before);
+  html += `<div class="slide-columns"><div class="slide-col">${md.render(left)}</div><div class="slide-col">${md.render(right)}</div></div>`;
+  if (after) html += md.render(after);
+
+  return html;
+}
+
 export function parsePresentation(markdown: string): ParsedPresentation {
   const rawSlides = markdown.split(/\n---\n/);
 
   const slides: ParsedSlide[] = rawSlides.map((raw) => {
     const { content, notes } = extractNotes(raw.trim());
-    let html = md.render(content);
+    let html = renderSlideMarkdown(content);
     html = transformCardLists(html);
     return { content, html, notes };
   });
