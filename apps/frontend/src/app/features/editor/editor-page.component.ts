@@ -10,6 +10,7 @@ import { AiAssistantPanelComponent } from './components/ai-assistant-panel.compo
 import { ResizeDividerComponent } from './components/resize-divider.component';
 import { PresentationService } from '../../core/services/presentation.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { ExportService } from '../../core/services/export.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 import type { PresentationDto } from '@slides/shared-types';
@@ -33,6 +34,9 @@ import type { PresentationDto } from '@slides/shared-types';
         <button class="btn-back" (click)="goBack()">&larr; Back</button>
         <input class="title-input" [(ngModel)]="title" (blur)="saveTitle()" placeholder="Presentation Title" />
         <app-theme-selector (themeChanged)="onThemeChanged($event)" />
+        <button class="btn-export" (click)="exportPdf()" [disabled]="exporting()">
+          {{ exporting() ? exportProgress() : 'PDF' }}
+        </button>
         <button class="btn-present" (click)="present()">Present</button>
         <button class="btn-ai" (click)="showAi.set(!showAi())">
           {{ showAi() ? 'Hide AI' : 'AI Assistant' }}
@@ -87,7 +91,9 @@ import type { PresentationDto } from '@slides/shared-types';
     .editor-layout { display: flex; flex-direction: column; height: 100vh; background: #1a1a2e; }
     .toolbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #16213e; border-bottom: 1px solid #0f3460; }
     .title-input { flex: 1; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; font-size: 1rem; }
-    .btn-back, .btn-present, .btn-ai { padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; color: #fff; }
+    .btn-back, .btn-present, .btn-ai, .btn-export { padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; color: #fff; }
+    .btn-export { background: #0f3460; }
+    .btn-export:disabled { opacity: 0.6; cursor: default; }
     .btn-back { background: #333; }
     .btn-present { background: #2ecc71; }
     .btn-ai { background: #e94560; }
@@ -114,6 +120,8 @@ export class EditorPageComponent implements OnInit {
   currentSlideContent = signal('');
   showAi = signal(false);
   isDragging = signal(false);
+  exporting = signal(false);
+  exportProgress = signal('');
 
   thumbnailWidth = signal(200);
   editorWidth = signal(0); // calculated on init
@@ -125,7 +133,8 @@ export class EditorPageComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private presentationService: PresentationService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private exportService: ExportService
   ) {}
 
   ngOnInit() {
@@ -277,6 +286,23 @@ export class EditorPageComponent implements OnInit {
   onAiDiagram(mermaid: string) {
     const block = '\n```mermaid\n' + mermaid + '\n```\n';
     this.editor.insertAtCursor(block);
+  }
+
+  async exportPdf() {
+    this.exporting.set(true);
+    this.exportProgress.set('Exporting...');
+    try {
+      await this.exportService.exportToPdf(
+        this.slides(),
+        this.currentTheme(),
+        this.title || 'presentation',
+        (current, total) => this.exportProgress.set(`${current + 1}/${total}`)
+      );
+    } catch {
+      // export failed silently
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   present() {
