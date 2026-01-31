@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ParsedSlide } from '@slides/markdown-parser';
@@ -10,7 +10,7 @@ import type { ParsedSlide } from '@slides/markdown-parser';
   template: `
     <div class="thumbnails-container">
       <div class="thumbnails-header">Slides</div>
-      <div class="thumbnails-list">
+      <div class="thumbnails-list" #thumbList>
         @for (slide of slides(); track $index) {
           <div
             class="thumbnail"
@@ -19,7 +19,7 @@ import type { ParsedSlide } from '@slides/markdown-parser';
           >
             <div class="thumbnail-number">{{ $index + 1 }}</div>
             <div class="thumbnail-inner">
-              <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)"></div>
+              <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)" [style.transform]="'scale(' + thumbScale() + ')'"></div>
             </div>
           </div>
         }
@@ -86,15 +86,37 @@ import type { ParsedSlide } from '@slides/markdown-parser';
     .thumbnail-content {
       width: 960px;
       height: 600px;
-      transform: scale(0.19);
       transform-origin: top left;
       pointer-events: none;
-      padding: 2rem;
-      font-size: 16px;
+      padding: 3rem;
+      box-sizing: border-box;
+      font-size: 1.5rem;
+      overflow: hidden;
     }
   `],
 })
-export class SlideThumbnailsComponent {
+export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
+  thumbScale = signal(0.19);
+  private resizeObserver?: ResizeObserver;
+
+  ngAfterViewInit() {
+    this.calcScale();
+    this.resizeObserver = new ResizeObserver(() => this.calcScale());
+    this.resizeObserver.observe(this.thumbListEl.nativeElement);
+  }
+
+  ngOnDestroy() {
+    this.resizeObserver?.disconnect();
+  }
+
+  private calcScale() {
+    const el = this.thumbListEl?.nativeElement;
+    if (!el) return;
+    const availW = el.clientWidth - 16; // padding
+    this.thumbScale.set(availW / 960);
+  }
+
   @Input() set slidesInput(value: ParsedSlide[]) {
     this.slides.set(value || []);
   }

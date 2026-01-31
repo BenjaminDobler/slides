@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -15,20 +15,24 @@ declare const mermaid: any;
   imports: [CommonModule],
   template: `
     <div class="presenter" [attr.data-theme]="theme()">
-      <div class="slide" [innerHTML]="currentHtml()"></div>
+      <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'">
+        <div class="slide slide-content" [innerHTML]="currentHtml()"></div>
+      </div>
       <div class="slide-counter">{{ currentIndex() + 1 }} / {{ slides().length }}</div>
     </div>
   `,
   styles: [`
-    .presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #fff; }
-    .slide { max-width: 80%; max-height: 80%; padding: 3rem; font-size: 1.5rem; }
-    .slide-counter { position: absolute; bottom: 1rem; right: 1.5rem; color: #999; font-size: 0.9rem; }
+    .presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #000; overflow: hidden; }
+    .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; }
+    .slide { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; overflow: hidden; }
+    .slide-counter { position: absolute; bottom: 1rem; right: 1.5rem; color: #999; font-size: 0.9rem; z-index: 1; }
   `],
 })
-export class PresenterComponent implements OnInit {
+export class PresenterComponent implements OnInit, OnDestroy {
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
+  slideScale = signal(1);
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml: () => SafeHtml;
@@ -47,6 +51,8 @@ export class PresenterComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.calcScale();
+    window.addEventListener('resize', this.onResize);
     const id = this.route.snapshot.paramMap.get('id') || '';
     this.themeService.loadThemes();
     this.presentationService.get(id).subscribe((p) => {
@@ -55,6 +61,19 @@ export class PresenterComponent implements OnInit {
       this.slides.set(parsed.slides);
       this.renderMermaid();
     });
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  private onResize = () => this.calcScale();
+
+  private calcScale() {
+    const padding = 64;
+    const availW = window.innerWidth - padding;
+    const availH = window.innerHeight - padding;
+    this.slideScale.set(Math.min(availW / 960, availH / 600));
   }
 
   @HostListener('document:keydown', ['$event'])

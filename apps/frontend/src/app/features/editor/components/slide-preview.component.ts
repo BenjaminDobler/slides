@@ -7,8 +7,10 @@ import {
   computed,
   ElementRef,
   ViewChild,
+  AfterViewInit,
   AfterViewChecked,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -28,9 +30,11 @@ declare const mermaid: any;
         <span>{{ currentIndex() + 1 }} / {{ slides().length || 1 }}</span>
         <button (click)="next()" [disabled]="currentIndex() >= slides().length - 1">&gt;</button>
       </div>
-      <div class="slide-area">
-        <div class="slide-frame" [attr.data-theme]="theme()">
-          <div class="slide-content" #slideContent [innerHTML]="currentHtml()"></div>
+      <div class="slide-area" #slideArea>
+        <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'" >
+          <div class="slide-frame" [attr.data-theme]="theme()">
+            <div class="slide-content" #slideContent [innerHTML]="currentHtml()"></div>
+          </div>
         </div>
       </div>
       @if (currentSlide()?.notes) {
@@ -48,12 +52,13 @@ declare const mermaid: any;
     .slide-nav button:disabled { opacity: 0.3; cursor: default; }
     .slide-nav span { color: #a8a8b3; font-size: 0.9rem; }
     .slide-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; min-height: 0; overflow: hidden; }
-    .slide-frame { width: 100%; max-height: 100%; aspect-ratio: 16 / 10; border-radius: 8px; overflow: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-    .slide-content { padding: 2rem; min-height: 100%; box-sizing: border-box; }
+    .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; }
+    .slide-frame { width: 960px; height: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .slide-content { width: 960px; height: 600px; padding: 3rem; box-sizing: border-box; overflow: hidden; font-size: 1.5rem; }
     .notes { padding: 0.75rem; background: #16213e; color: #a8a8b3; font-size: 0.85rem; flex-shrink: 0; }
   `],
 })
-export class SlidePreviewComponent implements OnChanges, AfterViewChecked {
+export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterViewChecked, OnDestroy {
   @Input() set slidesInput(value: ParsedSlide[]) {
     this.slides.set(value || []);
   }
@@ -73,11 +78,17 @@ export class SlidePreviewComponent implements OnChanges, AfterViewChecked {
   @Output() indexChanged = new EventEmitter<number>();
 
   @ViewChild('slideContent') slideContentEl!: ElementRef;
+  @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
+
+  private static readonly SLIDE_W = 960;
+  private static readonly SLIDE_H = 600;
 
   slides = signal<ParsedSlide[]>([]);
   theme = signal('default');
   currentIndex = signal(0);
+  slideScale = signal(1);
   private needsMermaidRender = false;
+  private resizeObserver?: ResizeObserver;
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml = computed(() => {
@@ -86,6 +97,26 @@ export class SlidePreviewComponent implements OnChanges, AfterViewChecked {
   });
 
   constructor(private sanitizer: DomSanitizer) {}
+
+  ngAfterViewInit() {
+    this.calcScale();
+    this.resizeObserver = new ResizeObserver(() => this.calcScale());
+    this.resizeObserver.observe(this.slideAreaEl.nativeElement);
+  }
+
+  ngOnDestroy() {
+    this.resizeObserver?.disconnect();
+  }
+
+  private calcScale() {
+    const el = this.slideAreaEl?.nativeElement;
+    if (!el) return;
+    const padding = 32; // 1rem each side
+    const availW = el.clientWidth - padding;
+    const availH = el.clientHeight - padding;
+    const scale = Math.min(availW / SlidePreviewComponent.SLIDE_W, availH / SlidePreviewComponent.SLIDE_H);
+    this.slideScale.set(Math.min(scale, 1));
+  }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['slidesInput']) {
