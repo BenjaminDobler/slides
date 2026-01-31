@@ -29,6 +29,7 @@ declare const monaco: any;
       <span class="separator"></span>
       <button title="Table" (click)="insertTable()">▦</button>
       <button title="Code Block" (click)="insertCodeBlock()">{{ '{' }} {{ '}' }}</button>
+      <button title="Two Columns" (click)="insertColumns()">◫</button>
       <button title="New Slide (---)" (click)="insertSlideSeparator()">―――</button>
     </div>
     <div #editorContainer class="editor-container"></div>
@@ -331,6 +332,17 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
 
     this.editor.executeEdits('toolbar', [{
       range: selection,
+      text,
+    }]);
+    this.editor.focus();
+  }
+
+  insertColumns() {
+    if (!this.editor) return;
+    const pos = this.editor.getPosition();
+    const text = '\n<!-- columns -->\nLeft content\n\n<!-- split -->\nRight content\n\n';
+    this.editor.executeEdits('toolbar', [{
+      range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
       text,
     }]);
     this.editor.focus();
