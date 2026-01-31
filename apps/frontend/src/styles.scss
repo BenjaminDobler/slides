@@ -51,6 +51,52 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #1a1a2e
   line-height: 1.5;
 }
 
+/* Slide lists */
+.slide-content ul,
+.slide-content ol {
+  padding-left: 1.5em;
+  margin: 0.5rem 0;
+}
+.slide-content li {
+  margin: 0.3rem 0;
+}
+
+/* Slide tables */
+.slide-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9em;
+}
+.slide-content th,
+.slide-content td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.slide-content th {
+  font-weight: 600;
+  border-bottom-width: 2px;
+}
+.slide-content tr:last-child td {
+  border-bottom: none;
+}
+
+/* Light theme table overrides */
+[data-theme="default"] .slide-content th,
+[data-theme="default"] .slide-content td,
+[data-theme="minimal"] .slide-content th,
+[data-theme="minimal"] .slide-content td,
+[data-theme="corporate"] .slide-content th,
+[data-theme="corporate"] .slide-content td {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="default"] .slide-content th,
+[data-theme="minimal"] .slide-content th,
+[data-theme="corporate"] .slide-content th {
+  border-bottom-color: rgba(0, 0, 0, 0.2);
+}
+
 /* Theme-aware card overrides */
 [data-theme="default"] .slide-card {
   background: rgba(0, 0, 0, 0.04);

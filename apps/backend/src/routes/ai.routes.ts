@@ -87,6 +87,11 @@ The cssContent must follow this selector pattern (replace THEME_NAME with your c
 }
 [data-theme="THEME_NAME"] code { background: #...; padding: 0.2em 0.4em; border-radius: 3px; }
 [data-theme="THEME_NAME"] a { color: var(--slide-accent); }
+[data-theme="THEME_NAME"] table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+[data-theme="THEME_NAME"] th, [data-theme="THEME_NAME"] td { padding: 0.6rem 1rem; text-align: left; border-bottom: 1px solid ...; }
+[data-theme="THEME_NAME"] th { font-weight: 600; border-bottom-width: 2px; }
+[data-theme="THEME_NAME"] .slide-card { background: ...; border: 1px solid ...; border-radius: 8px; padding: 1.2rem; }
+[data-theme="THEME_NAME"] .slide-card-title { color: var(--slide-heading); font-weight: 600; }
 
 You can add additional CSS rules for creative effects (gradients, shadows, etc.) but always use the [data-theme="THEME_NAME"] selector prefix.
 ${existingCss ? `\nHere is an existing theme CSS for reference:\n${existingCss}` : ''}`;
