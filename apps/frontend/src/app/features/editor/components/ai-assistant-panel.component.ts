@@ -1,4 +1,4 @@
-import { Component, signal, Output, EventEmitter } from '@angular/core';
+import { Component, signal, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../../core/services/ai.service';
@@ -14,7 +14,8 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
       <h3>AI Assistant</h3>
 
       <div class="mode-tabs">
-        <button [class.active]="mode() === 'content'" (click)="mode.set('content')">Content</button>
+        <button [class.active]="mode() === 'generate'" (click)="mode.set('generate')">Generate</button>
+        <button [class.active]="mode() === 'enhance'" (click)="mode.set('enhance')">Enhance</button>
         <button [class.active]="mode() === 'style'" (click)="mode.set('style')">Style</button>
       </div>
 
@@ -24,16 +25,60 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
         }
       </select>
 
-      @if (mode() === 'content') {
-        <textarea [(ngModel)]="prompt" placeholder="Describe the slides you want to generate..." rows="4"></textarea>
-        <button class="btn-action" (click)="generate()" [disabled]="loading()">
-          {{ loading() ? 'Generating...' : 'Generate Slides' }}
-        </button>
+      @if (mode() === 'generate') {
+        <div class="sub-tabs">
+          <button [class.active]="generateMode() === 'prompt'" (click)="generateMode.set('prompt')">From Prompt</button>
+          <button [class.active]="generateMode() === 'outline'" (click)="generateMode.set('outline')">From Outline</button>
+        </div>
+        @if (generateMode() === 'prompt') {
+          <textarea [(ngModel)]="prompt" placeholder="Describe the slides you want to generate..." rows="4"></textarea>
+          <button class="btn-action" (click)="generate()" [disabled]="loading()">
+            {{ loading() ? 'Generating...' : 'Generate Slides' }}
+          </button>
+        } @else {
+          <textarea [(ngModel)]="outlineText" placeholder="Paste an outline (e.g. bullet points, topics)..." rows="6"></textarea>
+          <button class="btn-action" (click)="outlineToSlides()" [disabled]="loading()">
+            {{ loading() ? 'Generating...' : 'Outline → Slides' }}
+          </button>
+        }
         @if (result()) {
           <div class="result">
             <p>Generated content ready.</p>
             <button class="btn-apply" (click)="applyResult()">Apply to Editor</button>
           </div>
+        }
+      }
+
+      @if (mode() === 'enhance') {
+        @if (!_currentSlideContent()) {
+          <p class="hint">Select a slide to use enhance features.</p>
+        } @else {
+          <div class="enhance-actions">
+            <button class="btn-enhance" (click)="generateSpeakerNotes()" [disabled]="loading()">
+              {{ loading() ? 'Working...' : 'Generate Speaker Notes' }}
+            </button>
+            <button class="btn-enhance" (click)="generateDiagram()" [disabled]="loading() || !diagramPrompt">
+              Generate Diagram
+            </button>
+            <textarea [(ngModel)]="diagramPrompt" placeholder="Describe the diagram..." rows="2"></textarea>
+            <div class="rewrite-row">
+              <select [(ngModel)]="rewriteAudience">
+                <option value="technical">Technical</option>
+                <option value="executive">Executive</option>
+                <option value="casual">Casual</option>
+              </select>
+              <button class="btn-enhance" (click)="rewriteSlide()" [disabled]="loading()">
+                {{ loading() ? 'Rewriting...' : 'Rewrite' }}
+              </button>
+            </div>
+          </div>
+          @if (enhanceResult()) {
+            <div class="result">
+              <p>{{ enhanceResultLabel() }}</p>
+              <pre class="result-preview">{{ enhanceResult() }}</pre>
+              <button class="btn-apply" (click)="applyEnhanceResult()">Apply</button>
+            </div>
+          }
         }
       }
 
@@ -59,9 +104,11 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
   styles: [`
     .ai-panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
     h3 { margin: 0; color: #fff; }
-    .mode-tabs { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid #333; }
-    .mode-tabs button { flex: 1; padding: 0.5rem; background: transparent; border: none; color: #a8a8b3; cursor: pointer; font-size: 0.85rem; }
-    .mode-tabs button.active { background: #0f3460; color: #fff; }
+    .mode-tabs, .sub-tabs { display: flex; gap: 0; border-radius: 6px; overflow: hidden; border: 1px solid #333; }
+    .mode-tabs button, .sub-tabs button { flex: 1; padding: 0.5rem; background: transparent; border: none; color: #a8a8b3; cursor: pointer; font-size: 0.85rem; }
+    .mode-tabs button.active, .sub-tabs button.active { background: #0f3460; color: #fff; }
+    .sub-tabs { border-color: #444; margin-top: -0.25rem; }
+    .sub-tabs button { font-size: 0.8rem; padding: 0.35rem; }
     select, textarea { width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; box-sizing: border-box; }
     textarea { resize: vertical; }
     .btn-action { padding: 0.6rem; border: none; border-radius: 6px; background: #e94560; color: #fff; cursor: pointer; }
@@ -69,21 +116,44 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
     .result { background: #0f3460; padding: 0.75rem; border-radius: 6px; }
     .result p { margin: 0 0 0.25rem; color: #fff; }
     .result .small { font-size: 0.8rem; color: #a8a8b3; }
+    .result-preview { font-size: 0.75rem; color: #a8a8b3; max-height: 120px; overflow-y: auto; white-space: pre-wrap; margin: 0.5rem 0; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; }
     .btn-apply { background: #2ecc71; border: none; border-radius: 6px; padding: 0.5rem 1rem; color: #fff; cursor: pointer; margin-top: 0.5rem; }
     .error { color: #e94560; font-size: 0.85rem; }
+    .hint { color: #a8a8b3; font-size: 0.85rem; font-style: italic; }
+    .enhance-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .btn-enhance { padding: 0.5rem; border: none; border-radius: 6px; background: #533483; color: #fff; cursor: pointer; font-size: 0.85rem; }
+    .btn-enhance:disabled { opacity: 0.5; }
+    .rewrite-row { display: flex; gap: 0.5rem; }
+    .rewrite-row select { flex: 1; }
+    .rewrite-row button { flex-shrink: 0; }
   `],
 })
 export class AiAssistantPanelComponent {
+  @Input() set currentSlideContentInput(value: string) {
+    this._currentSlideContent.set(value || '');
+  }
+  _currentSlideContent = signal('');
   @Output() contentGenerated = new EventEmitter<string>();
   @Output() themeGenerated = new EventEmitter<string>();
+  @Output() notesGenerated = new EventEmitter<{ slideIndex: number; notes: string }>();
+  @Output() diagramGenerated = new EventEmitter<string>();
 
   configs = signal<AiProviderConfigDto[]>([]);
   selectedProvider = '';
-  mode = signal<'content' | 'style'>('content');
+  mode = signal<'generate' | 'enhance' | 'style'>('generate');
+  generateMode = signal<'prompt' | 'outline'>('prompt');
 
-  // Content mode
+  // Generate mode
   prompt = '';
+  outlineText = '';
   result = signal('');
+
+  // Enhance mode
+  diagramPrompt = '';
+  rewriteAudience = 'technical';
+  enhanceResult = signal('');
+  enhanceResultLabel = signal('');
+  private enhanceType = '';
 
   // Style mode
   stylePrompt = '';
@@ -109,14 +179,19 @@ export class AiAssistantPanelComponent {
     this.error.set('');
     this.result.set('');
     this.aiService.generate(this.prompt, this.selectedProvider).subscribe({
-      next: (res) => {
-        this.result.set(res.content);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set(err?.error?.error || 'Generation failed');
-        this.loading.set(false);
-      },
+      next: (res) => { this.result.set(res.content); this.loading.set(false); },
+      error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
+    });
+  }
+
+  outlineToSlides() {
+    if (!this.selectedProvider || !this.outlineText) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.result.set('');
+    this.aiService.outlineToSlides(this.outlineText, this.selectedProvider).subscribe({
+      next: (res) => { this.result.set(res.content); this.loading.set(false); },
+      error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
     });
   }
 
@@ -127,20 +202,75 @@ export class AiAssistantPanelComponent {
     }
   }
 
+  generateSpeakerNotes() {
+    if (!this.selectedProvider) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.enhanceResult.set('');
+    this.aiService.speakerNotes(this._currentSlideContent(), this.selectedProvider).subscribe({
+      next: (res) => {
+        this.enhanceResult.set(res.notes);
+        this.enhanceResultLabel.set('Speaker notes generated:');
+        this.enhanceType = 'notes';
+        this.loading.set(false);
+      },
+      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+    });
+  }
+
+  generateDiagram() {
+    if (!this.selectedProvider || !this.diagramPrompt) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.enhanceResult.set('');
+    this.aiService.generateDiagram(this.diagramPrompt, this.selectedProvider).subscribe({
+      next: (res) => {
+        this.enhanceResult.set(res.mermaid);
+        this.enhanceResultLabel.set('Mermaid diagram generated:');
+        this.enhanceType = 'diagram';
+        this.loading.set(false);
+      },
+      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+    });
+  }
+
+  rewriteSlide() {
+    if (!this.selectedProvider) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.enhanceResult.set('');
+    this.aiService.rewrite(this._currentSlideContent(), this.selectedProvider, this.rewriteAudience).subscribe({
+      next: (res) => {
+        this.enhanceResult.set(res.content);
+        this.enhanceResultLabel.set(`Rewritten for ${this.rewriteAudience} audience:`);
+        this.enhanceType = 'rewrite';
+        this.loading.set(false);
+      },
+      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+    });
+  }
+
+  applyEnhanceResult() {
+    const result = this.enhanceResult();
+    if (!result) return;
+    if (this.enhanceType === 'notes') {
+      this.notesGenerated.emit({ slideIndex: -1, notes: result });
+    } else if (this.enhanceType === 'diagram') {
+      this.diagramGenerated.emit(result);
+    } else if (this.enhanceType === 'rewrite') {
+      this.contentGenerated.emit(result);
+    }
+    this.enhanceResult.set('');
+  }
+
   generateStyle() {
     if (!this.selectedProvider || !this.stylePrompt) return;
     this.loading.set(true);
     this.error.set('');
     this.styleResult.set(null);
     this.aiService.generateTheme(this.stylePrompt, this.selectedProvider).subscribe({
-      next: (res) => {
-        this.styleResult.set(res);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.error.set(err?.error?.error || 'Theme generation failed');
-        this.loading.set(false);
-      },
+      next: (res) => { this.styleResult.set(res); this.loading.set(false); },
+      error: (err) => { this.error.set(err?.error?.error || 'Theme generation failed'); this.loading.set(false); },
     });
   }
 

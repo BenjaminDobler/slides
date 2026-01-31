@@ -109,6 +109,27 @@ export interface AiImproveDto {
   instruction?: string;
 }
 
+export interface AiSpeakerNotesDto {
+  slideContent: string;
+  provider: string;
+}
+
+export interface AiGenerateDiagramDto {
+  description: string;
+  provider: string;
+}
+
+export interface AiRewriteDto {
+  slideContent: string;
+  provider: string;
+  audience: 'technical' | 'executive' | 'casual';
+}
+
+export interface AiOutlineToSlidesDto {
+  outline: string;
+  provider: string;
+}
+
 // === Media ===
 
 export interface MediaDto {

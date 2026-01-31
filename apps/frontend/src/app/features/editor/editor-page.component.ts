@@ -69,7 +69,13 @@ import type { PresentationDto } from '@slides/shared-types';
         @if (showAi()) {
           <app-resize-divider (resized)="onResizePreview($event)" />
           <div class="pane ai-pane">
-            <app-ai-assistant-panel (contentGenerated)="onAiContent($event)" (themeGenerated)="onThemeChanged($event)" />
+            <app-ai-assistant-panel
+              [currentSlideContentInput]="currentSlideContent()"
+              (contentGenerated)="onAiContent($event)"
+              (themeGenerated)="onThemeChanged($event)"
+              (notesGenerated)="onAiNotes($event)"
+              (diagramGenerated)="onAiDiagram($event)"
+            />
           </div>
         }
       </div>
@@ -102,6 +108,7 @@ export class EditorPageComponent implements OnInit {
   slides = signal<ParsedSlide[]>([]);
   currentTheme = signal('default');
   currentSlideIndex = signal(0);
+  currentSlideContent = signal('');
   showAi = signal(false);
   isDragging = signal(false);
 
@@ -146,15 +153,23 @@ export class EditorPageComponent implements OnInit {
   private updateSlides(markdown: string) {
     const parsed = parsePresentation(markdown);
     this.slides.set(parsed.slides);
+    this.updateCurrentSlideContent(this.currentSlideIndex());
   }
 
   onSlideSelected(index: number) {
     this.currentSlideIndex.set(index);
+    this.updateCurrentSlideContent(index);
     this.editor.revealSlide(index);
   }
 
   onCursorSlideChanged(index: number) {
     this.currentSlideIndex.set(index);
+    this.updateCurrentSlideContent(index);
+  }
+
+  private updateCurrentSlideContent(index: number) {
+    const slide = this.slides()[index];
+    this.currentSlideContent.set(slide?.content || '');
   }
 
   // --- Resize handlers ---
@@ -221,6 +236,27 @@ export class EditorPageComponent implements OnInit {
   onAiContent(content: string) {
     this.editor.setValue(content);
     this.onContentChange(content);
+  }
+
+  onAiNotes(event: { slideIndex: number; notes: string }) {
+    // Insert speaker notes into the current slide's markdown
+    const idx = event.slideIndex === -1 ? this.currentSlideIndex() : event.slideIndex;
+    const markdown = this.content();
+    const rawSlides = markdown.split('\n---\n');
+    if (idx < rawSlides.length) {
+      const notesBlock = `\n\n<!-- notes -->\n${event.notes}\n<!-- /notes -->`;
+      // Remove existing notes block if present
+      rawSlides[idx] = rawSlides[idx].replace(/\n*<!--\s*notes\s*-->[\s\S]*?<!--\s*\/notes\s*-->/i, '');
+      rawSlides[idx] = rawSlides[idx].trimEnd() + notesBlock;
+      const newContent = rawSlides.join('\n---\n');
+      this.editor.setValue(newContent);
+      this.onContentChange(newContent);
+    }
+  }
+
+  onAiDiagram(mermaid: string) {
+    const block = '\n```mermaid\n' + mermaid + '\n```\n';
+    this.editor.insertAtCursor(block);
   }
 
   present() {

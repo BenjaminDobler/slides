@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AiService } from '../../core/services/ai.service';
+import { AuthService } from '../../core/services/auth.service';
 import type { AiProviderConfigDto } from '@slides/shared-types';
 
 @Component({
@@ -32,10 +33,19 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
           <select [(ngModel)]="newProvider">
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
+            <option value="gemini">Gemini</option>
           </select>
           <input type="password" [(ngModel)]="newApiKey" placeholder="API Key" />
           <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
           <button (click)="addConfig()">Add</button>
+        </div>
+      </section>
+      <section>
+        <h2>MCP Server</h2>
+        <p class="mcp-desc">Use this token to connect the MCP server to external AI tools like Claude Code.</p>
+        <div class="token-row">
+          <code class="token-display">{{ tokenCopied() ? 'Copied!' : '••••••••••••••••' }}</code>
+          <button class="btn-copy" (click)="copyToken()">Copy Token</button>
         </div>
       </section>
     </div>
@@ -52,15 +62,20 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
     .add-provider { margin-top: 1rem; }
     .add-provider select, .add-provider input { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 6px; border: 1px solid #333; background: #0f3460; color: #fff; box-sizing: border-box; }
     .add-provider button { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #e94560; color: #fff; cursor: pointer; }
+    .mcp-desc { color: #a8a8b3; font-size: 0.85rem; margin: 0 0 0.75rem; }
+    .token-row { display: flex; gap: 0.5rem; align-items: center; }
+    .token-display { flex: 1; padding: 0.5rem; background: #0f3460; border-radius: 6px; font-size: 0.85rem; color: #a8a8b3; }
+    .btn-copy { padding: 0.5rem 1rem; border: none; border-radius: 6px; background: #533483; color: #fff; cursor: pointer; white-space: nowrap; }
   `],
 })
 export class SettingsComponent implements OnInit {
   configs = signal<AiProviderConfigDto[]>([]);
+  tokenCopied = signal(false);
   newProvider = 'openai';
   newApiKey = '';
   newModel = '';
 
-  constructor(private aiService: AiService, private router: Router) {}
+  constructor(private aiService: AiService, private authService: AuthService, private router: Router) {}
 
   ngOnInit() {
     this.loadConfigs();
@@ -83,6 +98,15 @@ export class SettingsComponent implements OnInit {
 
   removeConfig(id: string) {
     this.aiService.deleteConfig(id).subscribe(() => this.loadConfigs());
+  }
+
+  copyToken() {
+    const token = this.authService.getToken();
+    if (token) {
+      navigator.clipboard.writeText(token);
+      this.tokenCopied.set(true);
+      setTimeout(() => this.tokenCopied.set(false), 2000);
+    }
   }
 
   goBack() {

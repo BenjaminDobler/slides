@@ -34,4 +34,20 @@ export class AiService {
   generateTheme(description: string, provider: string, existingCss?: string): Observable<{ name: string; displayName: string; cssContent: string }> {
     return this.http.post<{ name: string; displayName: string; cssContent: string }>('/api/ai/generate-theme', { description, provider, existingCss });
   }
+
+  speakerNotes(slideContent: string, provider: string): Observable<{ notes: string }> {
+    return this.http.post<{ notes: string }>('/api/ai/speaker-notes', { slideContent, provider });
+  }
+
+  generateDiagram(description: string, provider: string): Observable<{ mermaid: string }> {
+    return this.http.post<{ mermaid: string }>('/api/ai/generate-diagram', { description, provider });
+  }
+
+  rewrite(slideContent: string, provider: string, audience: string): Observable<{ content: string }> {
+    return this.http.post<{ content: string }>('/api/ai/rewrite', { slideContent, provider, audience });
+  }
+
+  outlineToSlides(outline: string, provider: string): Observable<{ content: string }> {
+    return this.http.post<{ content: string }>('/api/ai/outline-to-slides', { outline, provider });
+  }
 }

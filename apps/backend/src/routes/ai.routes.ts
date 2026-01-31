@@ -3,7 +3,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../utils/prisma';
 import { decrypt } from '../utils/encryption';
 import { createAIProvider } from '../services/ai/provider-factory';
-import type { AiGenerateDto, AiImproveDto, AiSuggestStyleDto, AiGenerateThemeDto } from '@slides/shared-types';
+import type { AiGenerateDto, AiImproveDto, AiSuggestStyleDto, AiGenerateThemeDto, AiSpeakerNotesDto, AiGenerateDiagramDto, AiRewriteDto, AiOutlineToSlidesDto } from '@slides/shared-types';
 
 const router = Router();
 router.use(authMiddleware);
@@ -104,6 +104,73 @@ ${existingCss ? `\nHere is an existing theme CSS for reference:\n${existingCss}`
     }
 
     res.json(parsed);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/speaker-notes', async (req: AuthRequest, res: Response) => {
+  try {
+    const { slideContent, provider } = req.body as AiSpeakerNotesDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Generate concise speaker notes for this slide:\n\n${slideContent}`;
+    const notes = await ai.generateContent(prompt, {
+      systemPrompt: 'You are a presentation coach. Generate concise, helpful speaker notes. Return only the notes text, no markdown formatting or headers.',
+    });
+    res.json({ notes });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/generate-diagram', async (req: AuthRequest, res: Response) => {
+  try {
+    const { description, provider } = req.body as AiGenerateDiagramDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Create a mermaid diagram for: ${description}`;
+    const result = await ai.generateContent(prompt, {
+      systemPrompt: 'You are a diagram expert. Return ONLY valid mermaid diagram syntax. No markdown code fences, no explanation — just the mermaid code starting with the diagram type (graph, sequenceDiagram, flowchart, etc.).',
+    });
+    // Strip any accidental code fences
+    const mermaid = result.replace(/^```(?:mermaid)?\n?/g, '').replace(/\n?```$/g, '').trim();
+    res.json({ mermaid });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/rewrite', async (req: AuthRequest, res: Response) => {
+  try {
+    const { slideContent, provider, audience } = req.body as AiRewriteDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Rewrite this slide content for a ${audience} audience:\n\n${slideContent}\n\nReturn only the rewritten markdown.`;
+    const content = await ai.generateContent(prompt, {
+      systemPrompt: 'You are a presentation expert. Rewrite slide content for the specified audience while preserving the structure (headings, bullet points, code blocks). Return only markdown.',
+    });
+    res.json({ content });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/outline-to-slides', async (req: AuthRequest, res: Response) => {
+  try {
+    const { outline, provider } = req.body as AiOutlineToSlidesDto;
+    const ai = await getProviderForUser(req.userId!, provider);
+
+    const prompt = `Convert this outline into a full presentation:\n\n${outline}`;
+    const content = await ai.generateContent(prompt, {
+      systemPrompt: `You are a presentation assistant. Convert the outline into well-structured markdown slides separated by '---'.
+Use headings, bullet points, code blocks, and mermaid diagrams where appropriate.
+You can use these layout directives:
+- <!-- columns --> / <!-- split --> for two-column layouts
+- Lists where every item starts with **Title:** description will render as card grids
+Make each slide focused and visually appealing. Return only the markdown.`,
+    });
+    res.json({ content });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

@@ -46,3 +46,4 @@ Thumbs.db
 /generated/prisma
 .env
 uploads/
+.mcp.json
