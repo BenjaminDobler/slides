@@ -20,7 +20,16 @@ import { MediaLibraryComponent } from './media-library.component';
             <div
               class="thumbnail"
               [class.active]="$index === currentIndex()"
+              [class.dragging]="dragIndex() === $index"
+              [class.drop-above]="dropIndex() === $index && dragIndex() !== null && dragIndex()! > $index"
+              [class.drop-below]="dropIndex() === $index && dragIndex() !== null && dragIndex()! < $index"
+              draggable="true"
               (click)="selectSlide($index)"
+              (dragstart)="onDragStart($event, $index)"
+              (dragover)="onDragOver($event, $index)"
+              (dragleave)="onDragLeave()"
+              (drop)="onDrop($event, $index)"
+              (dragend)="onDragEnd()"
             >
               <div class="thumbnail-number">{{ $index + 1 }}</div>
               <div class="thumbnail-inner">
@@ -115,6 +124,9 @@ import { MediaLibraryComponent } from './media-library.component';
       font-size: 1.5rem;
       overflow: hidden;
     }
+    .thumbnail.dragging { opacity: 0.4; }
+    .thumbnail.drop-above { border-top: 3px solid #e94560; }
+    .thumbnail.drop-below { border-bottom: 3px solid #e94560; }
   `],
 })
 export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
@@ -156,11 +168,14 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
     this.theme.set(value);
   }
   @Output() slideSelected = new EventEmitter<number>();
+  @Output() slideReordered = new EventEmitter<{ from: number; to: number }>();
   @Output() mediaInsert = new EventEmitter<string>();
 
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
+  dragIndex = signal<number | null>(null);
+  dropIndex = signal<number | null>(null);
 
   constructor(private sanitizer: DomSanitizer) {}
 
@@ -175,5 +190,42 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
 
   onMediaInsert(markdown: string) {
     this.mediaInsert.emit(markdown);
+  }
+
+  // --- Drag-and-drop reorder ---
+
+  onDragStart(event: DragEvent, index: number) {
+    this.dragIndex.set(index);
+    event.dataTransfer!.effectAllowed = 'move';
+    event.dataTransfer!.setData('text/plain', String(index));
+  }
+
+  onDragOver(event: DragEvent, index: number) {
+    if (this.dragIndex() === null || this.dragIndex() === index) {
+      this.dropIndex.set(null);
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer!.dropEffect = 'move';
+    this.dropIndex.set(index);
+  }
+
+  onDragLeave() {
+    this.dropIndex.set(null);
+  }
+
+  onDrop(event: DragEvent, toIndex: number) {
+    event.preventDefault();
+    const fromIndex = this.dragIndex();
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      this.slideReordered.emit({ from: fromIndex, to: toIndex });
+    }
+    this.dragIndex.set(null);
+    this.dropIndex.set(null);
+  }
+
+  onDragEnd() {
+    this.dragIndex.set(null);
+    this.dropIndex.set(null);
   }
 }

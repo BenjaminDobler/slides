@@ -49,6 +49,7 @@ import type { PresentationDto } from '@slides/shared-types';
             [selectedIndex]="currentSlideIndex()"
             [themeInput]="currentTheme()"
             (slideSelected)="onSlideSelected($event)"
+            (slideReordered)="onSlideReordered($event)"
             (mediaInsert)="onMediaInsert($event)"
           />
         </div>
@@ -172,6 +173,21 @@ export class EditorPageComponent implements OnInit {
     this.currentSlideIndex.set(index);
     this.updateCurrentSlideContent(index);
     this.editor.revealSlide(index);
+  }
+
+  onSlideReordered(event: { from: number; to: number }) {
+    const markdown = this.content();
+    const rawSlides = markdown.split('\n---\n');
+    if (event.from < 0 || event.from >= rawSlides.length || event.to < 0 || event.to >= rawSlides.length) return;
+
+    const [moved] = rawSlides.splice(event.from, 1);
+    rawSlides.splice(event.to, 0, moved);
+
+    const newContent = rawSlides.join('\n---\n');
+    this.editor.replaceAll(newContent);
+    this.onContentChange(newContent);
+    this.currentSlideIndex.set(event.to);
+    this.updateCurrentSlideContent(event.to);
   }
 
   onCursorSlideChanged(index: number) {
