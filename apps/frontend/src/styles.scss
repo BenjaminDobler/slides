@@ -53,6 +53,83 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11
   line-height: 1.5;
 }
 
+/* Auto-layout: Hero (centered) */
+.slide-content .layout-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+}
+.slide-content .layout-hero h1 { font-size: 3rem; }
+.slide-content .layout-hero h2 { font-size: 2.2rem; }
+
+/* Auto-layout: Text + Image side by side */
+.slide-content .layout-text-image {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  height: 100%;
+}
+.slide-content .layout-media img,
+.slide-content .layout-media figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Auto-layout: Image grid */
+.slide-content .layout-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+.slide-content .layout-image-grid img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+.slide-content .layout-image-grid figure {
+  margin: 0;
+}
+
+/* Auto-layout: Cards + Image */
+.slide-content .layout-cards-image {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+  height: 100%;
+}
+.slide-content .layout-media-side img,
+.slide-content .layout-media-side figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Figure / caption (all layouts) */
+.slide-content figure { margin: 0; }
+.slide-content figcaption {
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 0.85em;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* Slide images default styling */
+.slide-content img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
 /* Slide lists */
 .slide-content ul,
 .slide-content ol {

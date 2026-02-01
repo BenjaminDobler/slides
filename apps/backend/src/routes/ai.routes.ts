@@ -12,22 +12,27 @@ const SLIDE_FORMAT_GUIDE = `
 SUPPORTED MARKDOWN SYNTAX:
 - Standard markdown: headings (#, ##, ###), bold, italic, lists, links, images, code blocks, tables
 - Slide separator: a line containing only '---' separates slides
-- Two-column layout: use <!-- columns --> to start, <!-- split --> to divide left/right, end with a blank line
 - Card grid layout: a list where every item starts with **Title:** description renders as a styled card grid
 - Mermaid diagrams: use \`\`\`mermaid code blocks (flowchart, sequenceDiagram, pie, graph, etc.)
 - Speaker notes: wrap in <!-- notes --> and <!-- /notes --> (not shown in presentation)
+- Image captions: an image followed by *italic text* on the next line renders as a figure with caption
 
-EXAMPLE - Two columns:
-<!-- columns -->
-Left column content
-
-<!-- split -->
-Right column content
+AUTOMATIC LAYOUTS:
+The system automatically detects content patterns and applies the best layout. Just write clean markdown:
+- A slide with only a heading (+ optional subtitle) → centered hero layout
+- A slide with heading + text + one image → side-by-side (text left, image right)
+- A slide with heading + multiple images → heading on top, image grid below
+- A slide with cards + images → cards on left, image on right
+No special directives needed — just write the content naturally.
 
 EXAMPLE - Card grid:
 - **Feature A:** Description of feature A
 - **Feature B:** Description of feature B
 - **Feature C:** Description of feature C
+
+EXAMPLE - Image with caption:
+![Photo](https://example.com/photo.jpg)
+*A beautiful sunset over the mountains*
 `.trim();
 
 async function getProviderForUser(userId: string, providerName: string) {

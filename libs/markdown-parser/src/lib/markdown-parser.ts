@@ -87,6 +87,147 @@ function transformCardLists(html: string): string {
 }
 
 /**
+ * Transforms <p><img ...></p> followed by <p><em>caption</em></p> into
+ * <figure><img ...><figcaption>caption</figcaption></figure>
+ */
+function transformImageCaptions(html: string): string {
+  // Case 1: <p><img></p> followed by <p><em>caption</em></p> (blank line between)
+  let result = html.replace(
+    /<p([^>]*)>(<img [^>]+>)<\/p>\s*<p([^>]*)><em>([^<]+)<\/em><\/p>/g,
+    (_match, pAttrs, img, _p2Attrs, caption) => {
+      return `<figure${pAttrs}>${img}<figcaption>${caption}</figcaption></figure>`;
+    }
+  );
+  // Case 2: <p><img>\n<em>caption</em></p> (no blank line, same paragraph)
+  result = result.replace(
+    /<p([^>]*)>(<img [^>]+>)\s*\n\s*<em>([^<]+)<\/em><\/p>/g,
+    (_match, pAttrs, img, caption) => {
+      return `<figure${pAttrs}>${img}<figcaption>${caption}</figcaption></figure>`;
+    }
+  );
+  return result;
+}
+
+/**
+ * Detects content patterns in rendered slide HTML and wraps in layout containers.
+ * Skips slides that already use manual <!-- columns --> layout.
+ */
+function applyAutoLayout(html: string): string {
+  // Skip if manual columns layout is present
+  if (html.includes('slide-columns')) return html;
+
+  // Analyze top-level content
+  const hasHeading = /<h[1-3][^>]*>/.test(html);
+  const images = html.match(/<img [^>]+>/g) || [];
+  const figures = html.match(/<figure[^>]*>/g) || [];
+  const imageCount = images.length;
+  const figureCount = figures.length;
+  const hasCards = html.includes('slide-card-grid');
+  const hasBlockquote = /<blockquote/.test(html);
+  const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
+  const hasCodeBlock = /<pre[^>]*>/.test(html);
+  const paragraphs = html.match(/<p[^>]*>[\s\S]*?<\/p>/g) || [];
+  // Paragraphs that aren't just images or captions
+  const textParagraphs = paragraphs.filter(
+    (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
+  );
+
+  // Hero: only headings + at most 1 short text paragraph, no images/lists/cards/code
+  if (
+    hasHeading &&
+    imageCount === 0 &&
+    !hasCards &&
+    !hasList &&
+    !hasCodeBlock &&
+    !hasBlockquote &&
+    textParagraphs.length <= 1
+  ) {
+    return `<div class="layout-hero">${html}</div>`;
+  }
+
+  // Cards + Image: has card grid and at least one image not inside cards
+  if (hasCards && imageCount > 0) {
+    // Split: everything before/after the first image or figure that's outside cards
+    // Strategy: cards + non-image content on left, images on right
+    const cardAndTextParts: string[] = [];
+    const mediaParts: string[] = [];
+
+    // Simple split: go through top-level elements
+    const parts = splitTopLevel(html);
+    for (const part of parts) {
+      if (/<img [^>]+>/.test(part) && !part.includes('slide-card')) {
+        mediaParts.push(part);
+      } else if (/<figure[^>]*>/.test(part)) {
+        mediaParts.push(part);
+      } else {
+        cardAndTextParts.push(part);
+      }
+    }
+
+    if (mediaParts.length > 0) {
+      return `<div class="layout-cards-image"><div class="layout-cards-side">${cardAndTextParts.join('\n')}</div><div class="layout-media-side">${mediaParts.join('\n')}</div></div>`;
+    }
+  }
+
+  // Image grid: 2+ images (or figures)
+  const totalImages = figureCount > 0 ? figureCount : imageCount;
+  if (totalImages >= 2 && hasHeading) {
+    // Put headings/text on top, images in a grid below
+    const topParts: string[] = [];
+    const gridParts: string[] = [];
+
+    const parts = splitTopLevel(html);
+    for (const part of parts) {
+      if (/<figure[^>]*>/.test(part) || (/<p[^>]*>\s*<img /.test(part))) {
+        gridParts.push(part);
+      } else {
+        topParts.push(part);
+      }
+    }
+
+    if (gridParts.length >= 2) {
+      return `${topParts.join('\n')}\n<div class="layout-image-grid">${gridParts.join('\n')}</div>`;
+    }
+  }
+
+  // Text + Image: heading/text and exactly 1 image
+  if (hasHeading && (imageCount === 1 || figureCount === 1)) {
+    const bodyParts: string[] = [];
+    const mediaParts: string[] = [];
+
+    const parts = splitTopLevel(html);
+    for (const part of parts) {
+      if ((/<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part)) && mediaParts.length === 0) {
+        mediaParts.push(part);
+      } else {
+        bodyParts.push(part);
+      }
+    }
+
+    if (mediaParts.length === 1 && bodyParts.length > 0) {
+      return `<div class="layout-text-image"><div class="layout-body">${bodyParts.join('\n')}</div><div class="layout-media">${mediaParts.join('\n')}</div></div>`;
+    }
+  }
+
+  return html;
+}
+
+/**
+ * Splits HTML into top-level element chunks.
+ * Simple approach: split on closing tags that are followed by opening tags.
+ */
+function splitTopLevel(html: string): string[] {
+  const parts: string[] = [];
+  // Match top-level block elements
+  const regex = /<(?:h[1-6]|p|div|ul|ol|blockquote|pre|figure|table)[^>]*>[\s\S]*?<\/(?:h[1-6]|p|div|ul|ol|blockquote|pre|figure|table)>/g;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    parts.push(match[0]);
+  }
+  return parts.length > 0 ? parts : [html];
+}
+
+/**
  * Pre-process markdown to split adjacent lists separated by blank lines
  * into distinct lists. Markdown-it merges them into one loose list otherwise.
  */
@@ -145,6 +286,8 @@ export function parsePresentation(markdown: string): ParsedPresentation {
     const { content, notes } = extractNotes(raw.trim());
     let html = renderSlideMarkdown(content);
     html = transformCardLists(html);
+    html = transformImageCaptions(html);
+    html = applyAutoLayout(html);
 
     // Advance line offset: raw content lines + 1 for the --- separator
     lineOffset += raw.split('\n').length + 1;
