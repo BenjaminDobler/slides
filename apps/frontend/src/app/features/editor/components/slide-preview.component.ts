@@ -1,10 +1,10 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
+  output,
   signal,
   computed,
+  inject,
   ElementRef,
   ViewChild,
   AfterViewInit,
@@ -23,43 +23,26 @@ declare const mermaid: any;
   selector: 'app-slide-preview',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="preview-container">
-      <div class="slide-nav">
-        <button (click)="prev()" [disabled]="currentIndex() === 0">&lt;</button>
-        <span>{{ currentIndex() + 1 }} / {{ slides().length || 1 }}</span>
-        <button (click)="next()" [disabled]="currentIndex() >= slides().length - 1">&gt;</button>
-      </div>
-      <div class="slide-area" #slideArea>
-        <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'" >
-          <div class="slide-frame" [attr.data-theme]="theme()">
-            <div class="slide-content" #slideContent [innerHTML]="currentHtml()"></div>
-          </div>
-        </div>
-      </div>
-      @if (currentSlide()?.notes) {
-        <div class="notes">
-          <strong>Notes:</strong> {{ currentSlide()?.notes }}
-        </div>
-      }
-    </div>
-  `,
-  styles: [`
-    :host { display: block; height: 100%; }
-    .preview-container { display: flex; flex-direction: column; height: 100%; background: #090b11; }
-    .slide-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0; height: 37px; background: #111318; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
-    .slide-nav button { background: #1c1f26; border: none; color: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
-    .slide-nav button:hover { background: #23262f; }
-    .slide-nav button:disabled { opacity: 0.3; cursor: default; }
-    .slide-nav span { color: #8b8d98; font-size: 0.9rem; }
-    .slide-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; min-height: 0; overflow: hidden; }
-    .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; }
-    .slide-frame { width: 960px; height: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-    .slide-content { width: 960px; height: 600px; padding: 3rem; box-sizing: border-box; overflow: hidden; font-size: 1.5rem; cursor: text; }
-    .notes { padding: 0.75rem; background: #111318; color: #8b8d98; font-size: 0.85rem; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,0.08); }
-  `],
+  templateUrl: './slide-preview.component.html',
+  styleUrl: './slide-preview.component.scss',
 })
 export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterViewChecked, OnDestroy {
+  private sanitizer = inject(DomSanitizer);
+
+  @ViewChild('slideContent') slideContentEl!: ElementRef;
+  @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
+
+  private static readonly SLIDE_W = 960;
+  private static readonly SLIDE_H = 600;
+
+  slides = signal<ParsedSlide[]>([]);
+  theme = signal('default');
+  currentIndex = signal(0);
+  slideScale = signal(1);
+  private needsMermaidRender = false;
+  private resizeObserver?: ResizeObserver;
+
+  // Using @Input setters because they have side effects beyond just storing the value
   @Input() set slidesInput(value: ParsedSlide[]) {
     this.slides.set(value || []);
   }
@@ -76,29 +59,15 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
       this.needsMermaidRender = true;
     }
   }
-  @Output() indexChanged = new EventEmitter<number>();
-  @Output() navigateToLine = new EventEmitter<number>();
 
-  @ViewChild('slideContent') slideContentEl!: ElementRef;
-  @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
-
-  private static readonly SLIDE_W = 960;
-  private static readonly SLIDE_H = 600;
-
-  slides = signal<ParsedSlide[]>([]);
-  theme = signal('default');
-  currentIndex = signal(0);
-  slideScale = signal(1);
-  private needsMermaidRender = false;
-  private resizeObserver?: ResizeObserver;
+  indexChanged = output<number>();
+  navigateToLine = output<number>();
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml = computed(() => {
     const slide = this.currentSlide();
     return slide ? this.sanitizer.bypassSecurityTrustHtml(slide.html) : '';
   });
-
-  constructor(private sanitizer: DomSanitizer) {}
 
   ngAfterViewInit() {
     this.calcScale();

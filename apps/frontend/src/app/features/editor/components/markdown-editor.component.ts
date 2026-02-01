@@ -4,8 +4,7 @@ import {
   OnDestroy,
   ElementRef,
   ViewChild,
-  Output,
-  EventEmitter,
+  output,
   Input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -16,67 +15,15 @@ declare const monaco: any;
   selector: 'app-markdown-editor',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="editor-toolbar">
-      <button title="Bold" (click)="wrapSelection('**', '**')"><b>B</b></button>
-      <button title="Italic" (click)="wrapSelection('*', '*')"><i>I</i></button>
-      <button title="Code" (click)="wrapSelection('\`', '\`')"><code>&lt;/&gt;</code></button>
-      <span class="separator"></span>
-      <button title="Heading" (click)="insertHeading()">H</button>
-      <button title="List" (click)="insertAtLineStart('- ')">☰</button>
-      <button title="Link" (click)="insertLink()">🔗</button>
-      <button title="Image" (click)="insertImage()">🖼</button>
-      <span class="separator"></span>
-      <button title="Table" (click)="insertTable()">▦</button>
-      <button title="Code Block" (click)="insertCodeBlock()">{{ '{' }} {{ '}' }}</button>
-      <button title="Two Columns" (click)="insertColumns()">◫</button>
-      <button title="New Slide (---)" (click)="insertSlideSeparator()">―――</button>
-    </div>
-    <div #editorContainer class="editor-container"></div>
-  `,
-  styles: [`
-    :host { display: flex; flex-direction: column; width: 100%; }
-    .editor-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      padding: 0 8px;
-      height: 37px;
-      background: #111318;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      flex-shrink: 0;
-    }
-    .editor-toolbar button {
-      background: transparent;
-      border: 1px solid transparent;
-      color: #8b8d98;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      line-height: 1;
-      min-width: 28px;
-      text-align: center;
-      transition: background 0.15s, color 0.15s;
-    }
-    .editor-toolbar button:hover {
-      background: #23262f;
-      border-color: rgba(255,255,255,0.1);
-      color: #f8f9fa;
-    }
-    .separator {
-      width: 1px;
-      height: 18px;
-      background: rgba(255,255,255,0.1);
-      margin: 0 4px;
-    }
-    .editor-container { flex: 1; min-height: 0; overflow: hidden; }
-  `],
+  templateUrl: './markdown-editor.component.html',
+  styleUrl: './markdown-editor.component.scss',
 })
 export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
   @ViewChild('editorContainer', { static: true }) editorContainer!: ElementRef<HTMLDivElement>;
-  @Output() contentChange = new EventEmitter<string>();
-  @Output() cursorSlideChanged = new EventEmitter<number>();
+
+  contentChange = output<string>();
+  cursorSlideChanged = output<number>();
+
   @Input() set initialContent(value: string) {
     if (value === this._initialContent) return;
     this._initialContent = value;
@@ -194,7 +141,6 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   private _lastCursorSlide = 0;
-  private _revealingSlide = false;
 
   private getSlideIndexAtLine(lineNumber: number): number {
     if (!this.editor) return 0;

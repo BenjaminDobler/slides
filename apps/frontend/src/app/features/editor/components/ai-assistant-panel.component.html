@@ -1,0 +1,102 @@
+<div class="ai-panel">
+  <h3>AI Assistant</h3>
+
+  <div class="mode-tabs">
+    <button [class.active]="mode() === 'generate'" (click)="mode.set('generate')">Generate</button>
+    <button [class.active]="mode() === 'enhance'" (click)="mode.set('enhance')">Enhance</button>
+    <button [class.active]="mode() === 'style'" (click)="mode.set('style')">Style</button>
+  </div>
+
+  <select [(ngModel)]="selectedProvider">
+    @for (c of configs(); track c.id) {
+      <option [value]="c.providerName">{{ c.providerName }}</option>
+    }
+  </select>
+
+  @if (mode() === 'generate') {
+    <div class="sub-tabs">
+      <button [class.active]="generateMode() === 'prompt'" (click)="generateMode.set('prompt')">From Prompt</button>
+      <button [class.active]="generateMode() === 'outline'" (click)="generateMode.set('outline')">From Outline</button>
+    </div>
+    @if (generateMode() === 'prompt') {
+      <textarea [(ngModel)]="prompt" placeholder="Describe the slides you want to generate..." rows="4"></textarea>
+      <button class="btn-action" (click)="generate()" [disabled]="loading()">
+        {{ loading() ? 'Generating...' : 'Generate Slides' }}
+      </button>
+    } @else {
+      <textarea [(ngModel)]="outlineText" placeholder="Paste an outline (e.g. bullet points, topics)..." rows="6"></textarea>
+      <button class="btn-action" (click)="outlineToSlides()" [disabled]="loading()">
+        {{ loading() ? 'Generating...' : 'Outline → Slides' }}
+      </button>
+    }
+    @if (result()) {
+      <div class="result">
+        <p>Generated content ready.</p>
+        <button class="btn-apply" (click)="applyResult()">Apply to Editor</button>
+      </div>
+    }
+  }
+
+  @if (mode() === 'enhance') {
+    @if (!_currentSlideContent()) {
+      <p class="hint">Select a slide to use enhance features.</p>
+    } @else {
+      <div class="enhance-actions">
+        <button class="btn-enhance" (click)="generateSpeakerNotes()" [disabled]="loading()">
+          {{ loading() ? 'Working...' : 'Generate Speaker Notes' }}
+        </button>
+        <button class="btn-enhance" (click)="generateDiagram()" [disabled]="loading() || !diagramPrompt">
+          Generate Diagram
+        </button>
+        <textarea [(ngModel)]="diagramPrompt" placeholder="Describe the diagram..." rows="2"></textarea>
+        <div class="rewrite-row">
+          <select [(ngModel)]="rewriteAudience">
+            <option value="technical">Technical</option>
+            <option value="executive">Executive</option>
+            <option value="casual">Casual</option>
+          </select>
+          <button class="btn-enhance" (click)="rewriteSlide()" [disabled]="loading()">
+            {{ loading() ? 'Rewriting...' : 'Rewrite' }}
+          </button>
+        </div>
+        @if (screenshotProvider) {
+          <div class="visual-section">
+            <span class="section-label">Visual AI (uses screenshot)</span>
+            <button class="btn-visual" (click)="visualReview()" [disabled]="loading()">
+              {{ loading() ? 'Reviewing...' : 'Review Slide' }}
+            </button>
+            <textarea [(ngModel)]="visualInstruction" placeholder="Optional: specific instruction for improvement..." rows="2"></textarea>
+            <button class="btn-visual" (click)="visualImprove()" [disabled]="loading()">
+              {{ loading() ? 'Improving...' : 'Improve Slide (Visual)' }}
+            </button>
+          </div>
+        }
+      </div>
+      @if (enhanceResult()) {
+        <div class="result">
+          <p>{{ enhanceResultLabel() }}</p>
+          <pre class="result-preview">{{ enhanceResult() }}</pre>
+          <button class="btn-apply" (click)="applyEnhanceResult()">Apply</button>
+        </div>
+      }
+    }
+  }
+
+  @if (mode() === 'style') {
+    <textarea [(ngModel)]="stylePrompt" placeholder="Describe the style you want, e.g. 'retro neon cyberpunk with dark background and glowing accents'" rows="4"></textarea>
+    <button class="btn-action" (click)="generateStyle()" [disabled]="loading()">
+      {{ loading() ? 'Generating...' : 'Generate Theme' }}
+    </button>
+    @if (styleResult()) {
+      <div class="result">
+        <p><strong>{{ styleResult()!.displayName }}</strong></p>
+        <p class="small">Theme "{{ styleResult()!.name }}" generated.</p>
+        <button class="btn-apply" (click)="saveAndApplyStyle()">Save &amp; Apply Theme</button>
+      </div>
+    }
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</div>

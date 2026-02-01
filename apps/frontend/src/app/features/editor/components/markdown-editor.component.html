@@ -1,0 +1,16 @@
+<div class="editor-toolbar">
+  <button title="Bold" (click)="wrapSelection('**', '**')"><b>B</b></button>
+  <button title="Italic" (click)="wrapSelection('*', '*')"><i>I</i></button>
+  <button title="Code" (click)="wrapSelection('`', '`')"><code>&lt;/&gt;</code></button>
+  <span class="separator"></span>
+  <button title="Heading" (click)="insertHeading()">H</button>
+  <button title="List" (click)="insertAtLineStart('- ')">☰</button>
+  <button title="Link" (click)="insertLink()">🔗</button>
+  <button title="Image" (click)="insertImage()">🖼</button>
+  <span class="separator"></span>
+  <button title="Table" (click)="insertTable()">▦</button>
+  <button title="Code Block" (click)="insertCodeBlock()">{{ '{' }} {{ '}' }}</button>
+  <button title="Two Columns" (click)="insertColumns()">◫</button>
+  <button title="New Slide (---)" (click)="insertSlideSeparator()">―――</button>
+</div>
+<div #editorContainer class="editor-container"></div>

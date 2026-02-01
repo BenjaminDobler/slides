@@ -1,0 +1,21 @@
+<div class="container">
+  <div class="header">
+    <h1>My Presentations</h1>
+    <div>
+      <button class="btn-primary" (click)="createNew()">+ New Presentation</button>
+      <button class="btn-secondary" (click)="openSettings()">Settings</button>
+      <button class="btn-secondary" (click)="logout()">Logout</button>
+    </div>
+  </div>
+  <div class="grid">
+    @for (p of presentations(); track p.id) {
+      <div class="card" (click)="open(p.id)">
+        <h3>{{ p.title }}</h3>
+        <span class="meta">{{ p.updatedAt | date:'medium' }}</span>
+        <button class="btn-delete" (click)="remove(p.id, $event)">Delete</button>
+      </div>
+    } @empty {
+      <p class="empty">No presentations yet. Create one!</p>
+    }
+  </div>
+</div>

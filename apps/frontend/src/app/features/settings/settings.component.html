@@ -1,0 +1,38 @@
+<div class="container">
+  <div class="header">
+    <h1>Settings</h1>
+    <button class="btn-back" (click)="goBack()">&larr; Back</button>
+  </div>
+
+  <section>
+    <h2>AI Providers</h2>
+    <div class="provider-list">
+      @for (c of configs(); track c.id) {
+        <div class="provider-card">
+          <span>{{ c.providerName }} {{ c.model ? '(' + c.model + ')' : '' }}</span>
+          <button class="btn-delete" (click)="removeConfig(c.id)">Remove</button>
+        </div>
+      }
+    </div>
+
+    <div class="add-provider">
+      <h3>Add Provider</h3>
+      <select [(ngModel)]="newProvider">
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="gemini">Gemini</option>
+      </select>
+      <input type="password" [(ngModel)]="newApiKey" placeholder="API Key" />
+      <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
+      <button (click)="addConfig()">Add</button>
+    </div>
+  </section>
+  <section>
+    <h2>MCP Server</h2>
+    <p class="mcp-desc">Use this token to connect the MCP server to external AI tools like Claude Code.</p>
+    <div class="token-row">
+      <code class="token-display">{{ tokenCopied() ? 'Copied!' : '••••••••••••••••' }}</code>
+      <button class="btn-copy" (click)="copyToken()">Copy Token</button>
+    </div>
+  </section>
+</div>

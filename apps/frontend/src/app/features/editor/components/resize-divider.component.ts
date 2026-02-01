@@ -1,30 +1,13 @@
-import { Component, Output, EventEmitter, HostListener, signal } from '@angular/core';
+import { Component, HostListener, signal, output } from '@angular/core';
 
 @Component({
   selector: 'app-resize-divider',
   standalone: true,
-  template: `<div class="divider" [class.active]="dragging()" (mousedown)="onMouseDown($event)"></div>`,
-  styles: [`
-    :host {
-      display: block;
-      width: 5px;
-      flex-shrink: 0;
-      height: 100%;
-    }
-    .divider {
-      width: 100%;
-      height: 100%;
-      cursor: col-resize;
-      background: rgba(255,255,255,0.15);
-      transition: background 0.15s;
-    }
-    .divider:hover, .divider.active {
-      background: #3b82f6;
-    }
-  `],
+  templateUrl: './resize-divider.component.html',
+  styleUrl: './resize-divider.component.scss',
 })
 export class ResizeDividerComponent {
-  @Output() resized = new EventEmitter<number>();
+  resized = output<number>();
 
   dragging = signal(false);
   private startX = 0;

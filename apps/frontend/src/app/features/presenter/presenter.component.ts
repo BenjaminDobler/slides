@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -15,78 +15,16 @@ type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'none';
   selector: 'app-presenter',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="presenter" [attr.data-theme]="theme()">
-      <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'">
-        <!-- Outgoing slide (behind) -->
-        @if (animating()) {
-          <div class="slide-layer" [class]="'slide-layer ' + outgoingClass()">
-            <div class="slide slide-content" [innerHTML]="outgoingHtml()"></div>
-          </div>
-        }
-        <!-- Current slide -->
-        <div class="slide-layer" [class]="'slide-layer ' + incomingClass()">
-          <div class="slide slide-content" #currentSlideEl></div>
-        </div>
-      </div>
-      <div class="controls">
-        <div class="slide-counter">{{ currentIndex() + 1 }} / {{ slides().length }}</div>
-        <div class="transition-picker">
-          <select [value]="transition()" (change)="onTransitionChange($event)">
-            <option value="fade">Fade</option>
-            <option value="slide">Slide</option>
-            <option value="zoom">Zoom</option>
-            <option value="flip">Flip</option>
-            <option value="none">None</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #000; overflow: hidden; perspective: 1200px; }
-    .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; position: relative; }
-    .slide-layer { position: absolute; top: 0; left: 0; width: 960px; height: 600px; }
-    .slide { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; overflow: hidden; }
-    .controls { position: absolute; bottom: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 10; }
-    .slide-counter { color: #8b8d98; font-size: 0.9rem; }
-    .transition-picker select { background: rgba(0,0,0,0.5); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
-    .controls:hover .transition-picker select { opacity: 1; }
-
-    /* Fade */
-    .fade-enter { animation: fadeIn 0.4s ease forwards; }
-    .fade-exit { animation: fadeOut 0.4s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-
-    /* Slide left/right */
-    .slide-enter-left { animation: slideInLeft 0.4s ease forwards; }
-    .slide-exit-left { animation: slideOutLeft 0.4s ease forwards; }
-    .slide-enter-right { animation: slideInRight 0.4s ease forwards; }
-    .slide-exit-right { animation: slideOutRight 0.4s ease forwards; }
-    @keyframes slideInLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
-    @keyframes slideOutLeft { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-    @keyframes slideInRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-    @keyframes slideOutRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
-
-    /* Zoom */
-    .zoom-enter { animation: zoomIn 0.4s ease forwards; }
-    .zoom-exit { animation: zoomOut 0.4s ease forwards; }
-    @keyframes zoomIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-    @keyframes zoomOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.2); } }
-
-    /* Flip */
-    .flip-enter-left { animation: flipInLeft 0.5s ease forwards; }
-    .flip-exit-left { animation: flipOutLeft 0.5s ease forwards; }
-    .flip-enter-right { animation: flipInRight 0.5s ease forwards; }
-    .flip-exit-right { animation: flipOutRight 0.5s ease forwards; }
-    @keyframes flipInLeft { from { transform: rotateY(-90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
-    @keyframes flipOutLeft { from { transform: rotateY(0); opacity: 1; } to { transform: rotateY(90deg); opacity: 0; } }
-    @keyframes flipInRight { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
-    @keyframes flipOutRight { from { transform: rotateY(0); opacity: 1; } to { transform: rotateY(-90deg); opacity: 0; } }
-  `],
+  templateUrl: './presenter.component.html',
+  styleUrl: './presenter.component.scss',
 })
 export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private sanitizer = inject(DomSanitizer);
+  private presentationService = inject(PresentationService);
+  private themeService = inject(ThemeService);
+
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
 
   slides = signal<ParsedSlide[]>([]);
@@ -106,13 +44,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml: () => SafeHtml;
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private sanitizer: DomSanitizer,
-    private presentationService: PresentationService,
-    private themeService: ThemeService
-  ) {
+  constructor() {
     this.currentHtml = () => {
       const slide = this.currentSlide();
       return slide ? this.sanitizer.bypassSecurityTrustHtml(slide.html) : '';

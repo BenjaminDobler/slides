@@ -1,0 +1,104 @@
+<div class="overlay" (click)="close.emit()"></div>
+<div class="modal">
+  <div class="modal-header">
+    <h2>{{ editingTheme() ? 'Edit Theme' : 'Create Theme' }}</h2>
+    <button class="btn-close" (click)="close.emit()">&times;</button>
+  </div>
+
+  <div class="tabs">
+    <button [class.active]="tab() === 'manual'" (click)="tab.set('manual')">Manual</button>
+    <button [class.active]="tab() === 'ai'" (click)="tab.set('ai')">AI Generate</button>
+  </div>
+
+  @if (tab() === 'manual') {
+    <div class="tab-content">
+      <div class="form-row">
+        <label>Theme Name</label>
+        <input [(ngModel)]="themeName" placeholder="my-custom-theme" [disabled]="!!editingTheme()" />
+      </div>
+      <div class="form-row">
+        <label>Display Name</label>
+        <input [(ngModel)]="displayName" placeholder="My Custom Theme" />
+      </div>
+      <div class="color-grid">
+        <div class="color-field">
+          <label>Background</label>
+          <input type="color" [(ngModel)]="bgColor" (ngModelChange)="buildCss()" />
+        </div>
+        <div class="color-field">
+          <label>Text</label>
+          <input type="color" [(ngModel)]="textColor" (ngModelChange)="buildCss()" />
+        </div>
+        <div class="color-field">
+          <label>Heading</label>
+          <input type="color" [(ngModel)]="headingColor" (ngModelChange)="buildCss()" />
+        </div>
+        <div class="color-field">
+          <label>Accent</label>
+          <input type="color" [(ngModel)]="accentColor" (ngModelChange)="buildCss()" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Body Font</label>
+        <select [(ngModel)]="bodyFont" (ngModelChange)="buildCss()">
+          <option value="'Inter', sans-serif">Inter</option>
+          <option value="'Roboto', sans-serif">Roboto</option>
+          <option value="'Georgia', serif">Georgia</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="system-ui, sans-serif">System UI</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Heading Font</label>
+        <select [(ngModel)]="headingFont" (ngModelChange)="buildCss()">
+          <option value="'Poppins', sans-serif">Poppins</option>
+          <option value="'Inter', sans-serif">Inter</option>
+          <option value="'Georgia', serif">Georgia</option>
+          <option value="'Playfair Display', serif">Playfair Display</option>
+          <option value="system-ui, sans-serif">System UI</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>CSS (editable)</label>
+        <textarea [(ngModel)]="cssContent" rows="8"></textarea>
+      </div>
+    </div>
+  }
+
+  @if (tab() === 'ai') {
+    <div class="tab-content">
+      <div class="form-row">
+        <label>AI Provider</label>
+        <select [(ngModel)]="selectedProvider">
+          @for (c of configs(); track c.id) {
+            <option [value]="c.providerName">{{ c.providerName }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Describe your theme</label>
+        <textarea [(ngModel)]="aiDescription" rows="3" placeholder="e.g. retro neon cyberpunk with dark background and glowing pink accents"></textarea>
+      </div>
+      <button class="btn-generate" (click)="generateWithAi()" [disabled]="aiLoading()">
+        {{ aiLoading() ? 'Generating...' : 'Generate Theme' }}
+      </button>
+      @if (aiError()) {
+        <p class="error">{{ aiError() }}</p>
+      }
+    </div>
+  }
+
+  <div class="preview-section">
+    <label>Preview</label>
+    <div class="preview-frame" [attr.data-theme]="themeName">
+      <div class="slide-content" [attr.data-theme]="themeName" [innerHTML]="previewHtml()"></div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-cancel" (click)="close.emit()">Cancel</button>
+    <button class="btn-save" (click)="save()" [disabled]="!themeName || !displayName || !cssContent">
+      {{ editingTheme() ? 'Update' : 'Save Theme' }}
+    </button>
+  </div>
+</div>

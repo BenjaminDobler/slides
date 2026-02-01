@@ -1,0 +1,43 @@
+<div class="thumbnails-container">
+  <div class="tab-bar">
+    <button class="tab" [class.active]="activeTab() === 'slides'" (click)="activeTab.set('slides')">Slides</button>
+    <button class="tab" [class.active]="activeTab() === 'library'" (click)="activeTab.set('library')">Library</button>
+  </div>
+  @if (activeTab() === 'slides') {
+    <div class="thumbnails-list" #thumbList>
+      @for (slide of slides(); track $index) {
+        <div
+          class="thumbnail"
+          [class.active]="$index === currentIndex()"
+          [class.dragging]="dragIndex() === $index"
+          [class.drop-above]="dropIndex() === $index && dragIndex() !== null && dragIndex()! > $index"
+          [class.drop-below]="dropIndex() === $index && dragIndex() !== null && dragIndex()! < $index"
+          draggable="true"
+          (click)="selectSlide($index)"
+          (contextmenu)="onContextMenu($event, $index)"
+          (dragstart)="onDragStart($event, $index)"
+          (dragover)="onDragOver($event, $index)"
+          (dragleave)="onDragLeave()"
+          (drop)="onDrop($event, $index)"
+          (dragend)="onDragEnd()"
+        >
+          <div class="thumbnail-number">{{ $index + 1 }}</div>
+          <div class="thumbnail-inner">
+            <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)" [style.transform]="'scale(' + thumbScale() + ')'"></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <app-media-library (mediaInsert)="onMediaInsert($event)" />
+  }
+</div>
+@if (contextMenuVisible()) {
+  <div class="context-menu" [style.top.px]="contextMenuPos().y" [style.left.px]="contextMenuPos().x">
+    <button (click)="ctxAddAbove()">Add slide above</button>
+    <button (click)="ctxAddBelow()">Add slide below</button>
+    <button (click)="ctxDuplicate()">Duplicate</button>
+    <div class="ctx-separator"></div>
+    <button class="ctx-danger" (click)="ctxDelete()">Delete</button>
+  </div>
+}

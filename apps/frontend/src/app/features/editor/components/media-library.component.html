@@ -1,0 +1,32 @@
+<div class="media-library">
+  <div
+    class="drop-zone"
+    [class.drag-over]="isDragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="isDragOver.set(false)"
+    (drop)="onDrop($event)"
+    (click)="fileInput.click()"
+  >
+    <input #fileInput type="file" accept="image/*,video/*,audio/*" multiple hidden (change)="onFileSelected($event)" />
+    @if (uploading()) {
+      <span>Uploading...</span>
+    } @else {
+      <span>Drop files here or click to upload</span>
+    }
+  </div>
+  <div class="media-grid">
+    @for (item of items(); track item.id) {
+      <div class="media-item" (click)="insertMedia(item)" draggable="true" (dragstart)="onDragStart($event, item)">
+        @if (item.mimeType.startsWith('image/')) {
+          <img [src]="item.url" [alt]="item.originalName" />
+        } @else if (item.mimeType.startsWith('video/')) {
+          <div class="media-icon">&#9654;</div>
+        } @else {
+          <div class="media-icon">&#9835;</div>
+        }
+        <div class="media-name" [title]="item.originalName">{{ item.originalName }}</div>
+        <button class="delete-btn" (click)="deleteMedia($event, item)" title="Delete">&times;</button>
+      </div>
+    }
+  </div>
+</div>

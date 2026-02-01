@@ -1,0 +1,19 @@
+<div class="theme-selector">
+  <select [ngModel]="themeService.currentTheme()?.name" (ngModelChange)="onThemeChange($event)">
+    @for (t of themeService.themes(); track t.name) {
+      <option [value]="t.name">{{ t.displayName }}</option>
+    }
+  </select>
+  @if (canEditCurrent()) {
+    <button class="btn-icon" title="Edit theme" (click)="editCurrent()">&#9998;</button>
+    <button class="btn-icon btn-delete" title="Delete theme" (click)="deleteCurrent()">&#10005;</button>
+  }
+  <button class="btn-icon btn-add" title="New theme" (click)="showEditor.set(true)">+</button>
+</div>
+@if (showEditor()) {
+  <app-theme-editor
+    [editTheme]="editingTheme()"
+    (close)="closeEditor()"
+    (saved)="onThemeSaved()"
+  />
+}

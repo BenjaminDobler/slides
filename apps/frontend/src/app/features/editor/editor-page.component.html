@@ -1,0 +1,61 @@
+<div class="editor-layout">
+  <div class="toolbar">
+    <button class="btn-back" (click)="goBack()">&larr; Back</button>
+    <input class="title-input" [(ngModel)]="title" (blur)="saveTitle()" placeholder="Presentation Title" />
+    <app-theme-selector (themeChanged)="onThemeChanged($event)" />
+    <button class="btn-export" (click)="exportPdf()" [disabled]="exporting()">
+      {{ exporting() ? exportProgress() : 'PDF' }}
+    </button>
+    <button class="btn-present" (click)="present()">Present</button>
+    <button class="btn-ai" (click)="showAi.set(!showAi())">
+      {{ showAi() ? 'Hide AI' : 'AI Assistant' }}
+    </button>
+  </div>
+  <div class="main-area" [class.dragging]="isDragging()">
+    <div class="pane thumbnails-pane" [style.width.px]="thumbnailWidth()">
+      <app-slide-thumbnails
+        [slidesInput]="slides()"
+        [selectedIndex]="currentSlideIndex()"
+        [themeInput]="currentTheme()"
+        (slideSelected)="onSlideSelected($event)"
+        (slideReordered)="onSlideReordered($event)"
+        (slideDeleted)="onSlideDeleted($event)"
+        (slideDuplicated)="onSlideDuplicated($event)"
+        (slideAdded)="onSlideAdded($event)"
+        (mediaInsert)="onMediaInsert($event)"
+      />
+    </div>
+    <app-resize-divider (resized)="onResizeThumbnails($event)" />
+    <div class="pane editor-pane" [style.width.px]="editorWidth()">
+      <app-markdown-editor
+        [initialContent]="content()"
+        (contentChange)="onContentChange($event)"
+        (cursorSlideChanged)="onCursorSlideChanged($event)"
+      />
+    </div>
+    <app-resize-divider (resized)="onResizeEditor($event)" />
+    <div class="pane preview-pane" [style.flex]="showAi() ? 'none' : '1'" [style.width.px]="showAi() ? previewWidth() : null">
+      <app-slide-preview
+        [slidesInput]="slides()"
+        [themeInput]="currentTheme()"
+        [selectedIndex]="currentSlideIndex()"
+        (indexChanged)="onSlideSelected($event)"
+        (navigateToLine)="onNavigateToLine($event)"
+      />
+    </div>
+    @if (showAi()) {
+      <app-resize-divider (resized)="onResizePreview($event)" />
+      <div class="pane ai-pane">
+        <app-ai-assistant-panel
+          [currentSlideContentInput]="currentSlideContent()"
+          [screenshotProvider]="captureSlideScreenshot"
+          (contentGenerated)="onAiContent($event)"
+          (slideContentGenerated)="onAiSlideContent($event)"
+          (themeGenerated)="onThemeChanged($event)"
+          (notesGenerated)="onAiNotes($event)"
+          (diagramGenerated)="onAiDiagram($event)"
+        />
+      </div>
+    }
+  </div>
+</div>

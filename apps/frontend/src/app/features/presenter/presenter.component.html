@@ -1,0 +1,26 @@
+<div class="presenter" [attr.data-theme]="theme()">
+  <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'">
+    <!-- Outgoing slide (behind) -->
+    @if (animating()) {
+      <div class="slide-layer" [class]="'slide-layer ' + outgoingClass()">
+        <div class="slide slide-content" [innerHTML]="outgoingHtml()"></div>
+      </div>
+    }
+    <!-- Current slide -->
+    <div class="slide-layer" [class]="'slide-layer ' + incomingClass()">
+      <div class="slide slide-content" #currentSlideEl></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="slide-counter">{{ currentIndex() + 1 }} / {{ slides().length }}</div>
+    <div class="transition-picker">
+      <select [value]="transition()" (change)="onTransitionChange($event)">
+        <option value="fade">Fade</option>
+        <option value="slide">Slide</option>
+        <option value="zoom">Zoom</option>
+        <option value="flip">Flip</option>
+        <option value="none">None</option>
+      </select>
+    </div>
+  </div>
+</div>

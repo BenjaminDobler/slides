@@ -1,0 +1,8 @@
+.theme-selector { display: flex; align-items: center; gap: 4px; }
+select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); background: #1c1f26; color: #f8f9fa; transition: border-color 0.15s; }
+select:focus { outline: none; border-color: #3b82f6; }
+.btn-icon { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #8b8d98; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s; }
+.btn-icon:hover { background: #23262f; color: #f8f9fa; }
+.btn-delete:hover { color: #ef4444; border-color: #ef4444; }
+.btn-add { color: #22c55e; border-color: #22c55e; }
+.btn-add:hover { background: #22c55e; color: #fff; }
