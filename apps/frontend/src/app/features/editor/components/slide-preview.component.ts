@@ -47,7 +47,7 @@ declare const mermaid: any;
   styles: [`
     :host { display: block; height: 100%; }
     .preview-container { display: flex; flex-direction: column; height: 100%; background: #090b11; }
-    .slide-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.5rem; background: #111318; flex-shrink: 0; }
+    .slide-nav { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0; height: 37px; background: #111318; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
     .slide-nav button { background: #1c1f26; border: none; color: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
     .slide-nav button:hover { background: #23262f; }
     .slide-nav button:disabled { opacity: 0.3; cursor: default; }

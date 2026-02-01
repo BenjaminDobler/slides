@@ -63,12 +63,14 @@ import { MediaLibraryComponent } from './media-library.component';
     }
     .tab-bar {
       display: flex;
+      height: 37px;
+      background: #111318;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
     }
     .tab {
       flex: 1;
-      padding: 0.5rem;
+      padding: 0;
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;

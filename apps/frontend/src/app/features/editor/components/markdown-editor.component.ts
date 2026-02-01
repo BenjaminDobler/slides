@@ -40,7 +40,8 @@ declare const monaco: any;
       display: flex;
       align-items: center;
       gap: 2px;
-      padding: 4px 8px;
+      padding: 0 8px;
+      height: 37px;
       background: #111318;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
@@ -112,10 +113,27 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   private initEditor() {
+    (window as any).monaco.editor.defineTheme('slides-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#090b11',
+        'editorGutter.background': '#090b11',
+        'editorLineNumber.foreground': '#5c5e6a',
+        'editorLineNumber.activeForeground': '#8b8d98',
+        'editor.lineHighlightBackground': '#111318',
+        'editor.selectionBackground': '#1c1f2680',
+        'editorWidget.background': '#111318',
+        'editorWidget.border': '#1c1f26',
+        'input.background': '#1c1f26',
+      },
+    });
+
     this.editor = (window as any).monaco.editor.create(this.editorContainer.nativeElement, {
       value: this._initialContent,
       language: 'markdown',
-      theme: 'vs-dark',
+      theme: 'slides-dark',
       automaticLayout: true,
       minimap: { enabled: false },
       wordWrap: 'on',
