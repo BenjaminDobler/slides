@@ -90,12 +90,15 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11
 [data-theme="minimal"] .slide-content th,
 [data-theme="minimal"] .slide-content td,
 [data-theme="corporate"] .slide-content th,
-[data-theme="corporate"] .slide-content td {
+[data-theme="corporate"] .slide-content td,
+[data-theme="lavender"] .slide-content th,
+[data-theme="lavender"] .slide-content td {
   border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 [data-theme="default"] .slide-content th,
 [data-theme="minimal"] .slide-content th,
-[data-theme="corporate"] .slide-content th {
+[data-theme="corporate"] .slide-content th,
+[data-theme="lavender"] .slide-content th {
   border-bottom-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -117,6 +120,12 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11
   border-width: 1px 1px 1px 3px;
 }
 [data-theme="corporate"] .slide-card-title { color: var(--slide-heading, #1a365d); }
+
+[data-theme="lavender"] .slide-card {
+  background: rgba(124, 58, 237, 0.06);
+  border-color: rgba(124, 58, 237, 0.15);
+}
+[data-theme="lavender"] .slide-card-title { color: var(--slide-heading, #7c3aed); }
 
 /* Code block syntax highlighting */
 .slide-content pre.hljs {
@@ -159,38 +168,48 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11
 /* Light theme code block overrides */
 [data-theme="default"] .slide-content pre.hljs,
 [data-theme="minimal"] .slide-content pre.hljs,
-[data-theme="corporate"] .slide-content pre.hljs {
+[data-theme="corporate"] .slide-content pre.hljs,
+[data-theme="lavender"] .slide-content pre.hljs {
   background: #f6f8fa;
   color: #24292e;
 }
 [data-theme="default"] .slide-content pre.hljs[data-lang]::before,
 [data-theme="minimal"] .slide-content pre.hljs[data-lang]::before,
-[data-theme="corporate"] .slide-content pre.hljs[data-lang]::before {
+[data-theme="corporate"] .slide-content pre.hljs[data-lang]::before,
+[data-theme="lavender"] .slide-content pre.hljs[data-lang]::before {
   color: rgba(0, 0, 0, 0.3);
 }
 [data-theme="default"] .slide-content pre.hljs .hljs-keyword,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-keyword,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-keyword { color: #d73a49; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-keyword,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-keyword { color: #d73a49; }
 [data-theme="default"] .slide-content pre.hljs .hljs-string,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-string,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-string { color: #032f62; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-string,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-string { color: #032f62; }
 [data-theme="default"] .slide-content pre.hljs .hljs-comment,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-comment,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-comment { color: #6a737d; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-comment,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-comment { color: #6a737d; }
 [data-theme="default"] .slide-content pre.hljs .hljs-function,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-function,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-function { color: #6f42c1; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-function,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-function { color: #6f42c1; }
 [data-theme="default"] .slide-content pre.hljs .hljs-number,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-number,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-number { color: #005cc5; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-number,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-number { color: #005cc5; }
 [data-theme="default"] .slide-content pre.hljs .hljs-title,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-title,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-title { color: #6f42c1; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-title,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-title { color: #6f42c1; }
 [data-theme="default"] .slide-content pre.hljs .hljs-built_in,
 [data-theme="minimal"] .slide-content pre.hljs .hljs-built_in,
-[data-theme="corporate"] .slide-content pre.hljs .hljs-built_in { color: #e36209; }
+[data-theme="corporate"] .slide-content pre.hljs .hljs-built_in,
+[data-theme="lavender"] .slide-content pre.hljs .hljs-built_in { color: #e36209; }
 [data-theme="default"] .slide-content code,
 [data-theme="minimal"] .slide-content code,
-[data-theme="corporate"] .slide-content code {
+[data-theme="corporate"] .slide-content code,
+[data-theme="lavender"] .slide-content code {
   background: rgba(0, 0, 0, 0.06);
 }

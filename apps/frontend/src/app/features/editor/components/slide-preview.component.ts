@@ -189,7 +189,7 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
     if (typeof mermaid === 'undefined') return;
 
     // Map slide themes to mermaid themes, with custom variable overrides
-    const darkThemes = ['dark', 'creative'];
+    const darkThemes = ['dark', 'creative', 'ocean', 'sunset', 'forest', 'noir', 'cyberpunk'];
     const mermaidTheme = darkThemes.includes(themeName) ? 'dark' : 'default';
 
     // Read CSS custom properties from the theme to style mermaid
