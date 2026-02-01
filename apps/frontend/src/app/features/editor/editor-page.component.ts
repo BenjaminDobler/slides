@@ -146,8 +146,7 @@ export class EditorPageComponent implements OnInit {
     private exportService: ExportService
   ) {}
 
-  ngOnInit() {
-    this.themeService.loadThemes();
+  async ngOnInit() {
     this.presentationId = this.route.snapshot.paramMap.get('id') || '';
 
     // Calculate initial widths based on window size
@@ -155,11 +154,16 @@ export class EditorPageComponent implements OnInit {
     this.editorWidth.set(Math.floor(available / 2));
     this.previewWidth.set(Math.floor(available / 2));
 
+    await this.themeService.loadThemes();
+
     if (this.presentationId) {
       this.presentationService.get(this.presentationId).subscribe((p) => {
         this.title = p.title;
         this.content.set(p.content);
         this.currentTheme.set(p.theme);
+        // Apply the saved theme's CSS
+        const theme = this.themeService.themes().find((t) => t.name === p.theme);
+        if (theme) this.themeService.applyTheme(theme);
         this.updateSlides(p.content);
       });
     }
