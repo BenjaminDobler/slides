@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-const BACKEND_URL = process.env.SLIDES_BACKEND_URL || 'http://localhost:3333';
+const BACKEND_URL = process.env.SLIDES_BACKEND_URL || 'http://localhost:3332';
 const AUTH_TOKEN = process.env.SLIDES_AUTH_TOKEN || '';
 
 async function api(method: string, path: string, body?: unknown) {
