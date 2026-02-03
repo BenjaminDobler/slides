@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -17,7 +17,7 @@ type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'none';
   templateUrl: './presenter.component.html',
   styleUrl: './presenter.component.scss',
 })
-export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
@@ -36,8 +36,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
   incomingClass = signal('');
   outgoingClass = signal('');
   outgoingHtml = signal<SafeHtml>('');
-  private needsMermaidRender = false;
-  private mermaidRenderedIndex = -1;
+  private pendingRender = false;
 
   private animationTimeout: any;
 
@@ -61,8 +60,18 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.mermaidService.initializeTheme(p.theme);
       const parsed = parsePresentation(p.content);
       this.slides.set(parsed.slides);
-      this.needsMermaidRender = true;
+      // View is guaranteed to be ready since HTTP is async
+      // Use setTimeout to ensure DOM has updated with new slide data
+      setTimeout(() => this.applySlideContent(), 0);
     });
+  }
+
+  ngAfterViewInit() {
+    // If slides were already loaded before view was ready, render now
+    if (this.pendingRender) {
+      this.pendingRender = false;
+      this.applySlideContent();
+    }
   }
 
   ngOnDestroy() {
@@ -108,7 +117,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
       // No animation
       if (direction === 'forward') this.currentIndex.update((i) => i + 1);
       else this.currentIndex.update((i) => i - 1);
-      this.needsMermaidRender = true;
+      this.applySlideContent();
       return;
     }
 
@@ -128,16 +137,18 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.animating.set(true);
 
-    // Change slide
+    // Change slide index and immediately apply new content
     if (direction === 'forward') this.currentIndex.update((i) => i + 1);
     else this.currentIndex.update((i) => i - 1);
+
+    // Apply new slide content immediately so it animates in with the correct content
+    this.applySlideContent();
 
     const duration = t === 'flip' ? 500 : 400;
     this.animationTimeout = setTimeout(() => {
       this.animating.set(false);
       this.incomingClass.set('');
       this.outgoingClass.set('');
-      this.needsMermaidRender = true;
     }, duration);
   }
 
@@ -153,19 +164,11 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  ngAfterViewChecked() {
-    if (this.needsMermaidRender && this.currentSlideEl) {
-      this.needsMermaidRender = false;
-      this.applySlideContent();
-    }
-  }
-
   private async applySlideContent() {
     const el = this.currentSlideEl?.nativeElement;
     if (!el) return;
     const slide = this.currentSlide();
     el.innerHTML = slide ? slide.html : '';
-    this.mermaidRenderedIndex = this.currentIndex();
 
     await this.mermaidService.renderDiagrams(el);
   }
