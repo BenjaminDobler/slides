@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import type { ParsedSlide } from '@slides/markdown-parser';
-
-declare const mermaid: any;
+import { MermaidService } from './mermaid.service';
 
 @Injectable({ providedIn: 'root' })
 export class ExportService {
+  private mermaidService = inject(MermaidService);
   private static readonly SLIDE_W = 960;
   private static readonly SLIDE_H = 600;
 
@@ -43,28 +43,16 @@ export class ExportService {
     });
 
     try {
+      // Initialize mermaid theme before rendering
+      this.mermaidService.initializeTheme(theme);
+
       for (let i = 0; i < slides.length; i++) {
         if (onProgress) onProgress(i, slides.length);
 
         frame.innerHTML = slides[i].html;
 
-        // Render mermaid diagrams if present
-        if (typeof mermaid !== 'undefined') {
-          const diagrams = frame.querySelectorAll('.mermaid');
-          if (diagrams.length > 0) {
-            diagrams.forEach((node: Element) => {
-              node.removeAttribute('data-processed');
-              const src = node.getAttribute('data-mermaid-src');
-              if (src) node.textContent = src;
-              if (!node.getAttribute('data-mermaid-src') && node.textContent) {
-                node.setAttribute('data-mermaid-src', node.textContent.trim());
-              }
-            });
-            try {
-              await mermaid.run({ nodes: Array.from(diagrams) });
-            } catch { /* ignore */ }
-          }
-        }
+        // Render mermaid diagrams with styled theme
+        await this.mermaidService.renderDiagrams(frame);
 
         const canvas = await html2canvas(frame, {
           scale: 2,

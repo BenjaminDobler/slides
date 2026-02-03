@@ -4,10 +4,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { PresentationService } from '../../core/services/presentation.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { MermaidService } from '../../core/services/mermaid.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
-
-declare const mermaid: any;
 
 type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'none';
 
@@ -24,6 +23,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
   private sanitizer = inject(DomSanitizer);
   private presentationService = inject(PresentationService);
   private themeService = inject(ThemeService);
+  private mermaidService = inject(MermaidService);
 
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
 
@@ -58,6 +58,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.themeService.loadThemes();
     this.presentationService.get(id).subscribe((p) => {
       this.theme.set(p.theme);
+      this.mermaidService.initializeTheme(p.theme);
       const parsed = parsePresentation(p.content);
       this.slides.set(parsed.slides);
       this.needsMermaidRender = true;
@@ -166,18 +167,6 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewChecked {
     el.innerHTML = slide ? slide.html : '';
     this.mermaidRenderedIndex = this.currentIndex();
 
-    if (typeof mermaid === 'undefined') return;
-    const diagrams = el.querySelectorAll('.mermaid');
-    if (diagrams.length === 0) return;
-
-    diagrams.forEach((node: Element) => {
-      if (!node.getAttribute('data-mermaid-src') && node.textContent) {
-        node.setAttribute('data-mermaid-src', node.textContent.trim());
-      }
-    });
-
-    try {
-      await mermaid.run({ nodes: Array.from(diagrams) });
-    } catch { /* ignore parse errors */ }
+    await this.mermaidService.renderDiagrams(el);
   }
 }

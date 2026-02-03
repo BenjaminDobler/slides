@@ -290,3 +290,388 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: #090b11
 [data-theme="lavender"] .slide-content code {
   background: rgba(0, 0, 0, 0.06);
 }
+
+/* ============================================
+   MERMAID DIAGRAM STYLING
+   ============================================ */
+
+/* Base mermaid container */
+.slide-content .mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: visible;
+}
+
+.slide-content .mermaid svg {
+  max-width: 100%;
+  height: auto;
+  font-family: 'Inter', 'Segoe UI', sans-serif !important;
+}
+
+/* Node styling - rounded corners and subtle shadows */
+.slide-content .mermaid .node rect,
+.slide-content .mermaid .node polygon,
+.slide-content .mermaid .node circle,
+.slide-content .mermaid .node ellipse {
+  rx: 8px;
+  ry: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  transition: filter 0.2s ease;
+}
+
+.slide-content .mermaid .node:hover rect,
+.slide-content .mermaid .node:hover polygon {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+}
+
+/* Diamond/decision nodes */
+.slide-content .mermaid .node polygon {
+  rx: 0;
+  ry: 0;
+}
+
+/* Node text */
+.slide-content .mermaid .nodeLabel,
+.slide-content .mermaid .node .label {
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+/* Edge/arrow styling */
+.slide-content .mermaid .edgePath path.path {
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.slide-content .mermaid marker path {
+  stroke-width: 1px;
+}
+
+/* Edge labels */
+.slide-content .mermaid .edgeLabel {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.slide-content .mermaid .edgeLabel rect {
+  rx: 6px;
+  ry: 6px;
+  opacity: 0.9;
+}
+
+/* Cluster/subgraph styling */
+.slide-content .mermaid .cluster rect {
+  rx: 12px !important;
+  ry: 12px !important;
+  stroke-width: 1.5px;
+  stroke-dasharray: none;
+}
+
+.slide-content .mermaid .cluster .nodeLabel,
+.slide-content .mermaid .cluster-label .nodeLabel {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Sequence diagram styling */
+.slide-content .mermaid .actor {
+  rx: 8px;
+  ry: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.slide-content .mermaid .actor-line {
+  stroke-dasharray: 4, 4;
+  opacity: 0.5;
+}
+
+.slide-content .mermaid text.actor {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.slide-content .mermaid .messageText {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.slide-content .mermaid .messageLine0,
+.slide-content .mermaid .messageLine1 {
+  stroke-width: 1.5px;
+}
+
+.slide-content .mermaid .note {
+  rx: 6px;
+  ry: 6px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+.slide-content .mermaid .noteText {
+  font-size: 11px;
+  font-style: italic;
+}
+
+.slide-content .mermaid .activation0,
+.slide-content .mermaid .activation1,
+.slide-content .mermaid .activation2 {
+  rx: 3px;
+  ry: 3px;
+}
+
+.slide-content .mermaid .loopText {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.slide-content .mermaid .loopLine {
+  stroke-dasharray: 6, 4;
+  stroke-width: 1.5px;
+}
+
+.slide-content .mermaid .labelBox {
+  rx: 6px;
+  ry: 6px;
+}
+
+/* Pie chart styling */
+.slide-content .mermaid .pieCircle {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+
+.slide-content .mermaid .pieTitleText {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.slide-content .mermaid .slice {
+  stroke-width: 2px;
+  transition: transform 0.2s ease;
+}
+
+.slide-content .mermaid .legend text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Git graph styling */
+.slide-content .mermaid .commit-id,
+.slide-content .mermaid .commit-msg {
+  font-size: 11px;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+}
+
+.slide-content .mermaid .branch-label {
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* State diagram styling */
+.slide-content .mermaid .stateGroup rect {
+  rx: 8px;
+  ry: 8px;
+}
+
+.slide-content .mermaid .statediagram-state .nodeLabel {
+  font-weight: 500;
+}
+
+.slide-content .mermaid .start-state,
+.slide-content .mermaid .end-state {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
+}
+
+/* Class diagram styling */
+.slide-content .mermaid .classGroup rect {
+  rx: 8px;
+  ry: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.slide-content .mermaid .classLabel .label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.slide-content .mermaid .classTitle {
+  font-weight: 700;
+}
+
+/* ER diagram styling */
+.slide-content .mermaid .er.entityBox {
+  rx: 8px;
+  ry: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.slide-content .mermaid .er.entityLabel {
+  font-weight: 600;
+}
+
+/* Gantt chart styling */
+.slide-content .mermaid .task {
+  rx: 4px;
+  ry: 4px;
+}
+
+.slide-content .mermaid .taskText {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.slide-content .mermaid .sectionTitle {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Timeline styling */
+.slide-content .mermaid .timeline-event {
+  rx: 6px;
+  ry: 6px;
+}
+
+/* Journey diagram styling */
+.slide-content .mermaid .journey-section rect {
+  rx: 8px;
+  ry: 8px;
+}
+
+.slide-content .mermaid .journey-task {
+  font-size: 12px;
+}
+
+/* Mindmap styling */
+.slide-content .mermaid .mindmap-node rect,
+.slide-content .mermaid .mindmap-node circle {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+/* ============================================
+   LIGHT THEME MERMAID OVERRIDES
+   ============================================ */
+
+[data-theme="default"] .slide-content .mermaid,
+[data-theme="minimal"] .slide-content .mermaid,
+[data-theme="corporate"] .slide-content .mermaid,
+[data-theme="lavender"] .slide-content .mermaid {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="default"] .slide-content .mermaid .node rect,
+[data-theme="default"] .slide-content .mermaid .node polygon,
+[data-theme="minimal"] .slide-content .mermaid .node rect,
+[data-theme="minimal"] .slide-content .mermaid .node polygon,
+[data-theme="corporate"] .slide-content .mermaid .node rect,
+[data-theme="corporate"] .slide-content .mermaid .node polygon,
+[data-theme="lavender"] .slide-content .mermaid .node rect,
+[data-theme="lavender"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+[data-theme="default"] .slide-content .mermaid .node:hover rect,
+[data-theme="default"] .slide-content .mermaid .node:hover polygon,
+[data-theme="minimal"] .slide-content .mermaid .node:hover rect,
+[data-theme="minimal"] .slide-content .mermaid .node:hover polygon,
+[data-theme="corporate"] .slide-content .mermaid .node:hover rect,
+[data-theme="corporate"] .slide-content .mermaid .node:hover polygon,
+[data-theme="lavender"] .slide-content .mermaid .node:hover rect,
+[data-theme="lavender"] .slide-content .mermaid .node:hover polygon {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+}
+
+/* ============================================
+   SPECIAL THEME MERMAID ACCENTS
+   ============================================ */
+
+/* Creative theme - more vibrant */
+[data-theme="creative"] .slide-content .mermaid {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="creative"] .slide-content .mermaid .node rect,
+[data-theme="creative"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 3px 6px rgba(236, 72, 153, 0.2));
+}
+
+/* Cyberpunk theme - glowing effect */
+[data-theme="cyberpunk"] .slide-content .mermaid {
+  background: rgba(0, 255, 255, 0.03);
+}
+
+[data-theme="cyberpunk"] .slide-content .mermaid .node rect,
+[data-theme="cyberpunk"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.3));
+}
+
+[data-theme="cyberpunk"] .slide-content .mermaid .edgePath path.path {
+  filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
+}
+
+/* Ocean theme - cool tones */
+[data-theme="ocean"] .slide-content .mermaid {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+[data-theme="ocean"] .slide-content .mermaid .node rect,
+[data-theme="ocean"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 3px 6px rgba(56, 189, 248, 0.2));
+}
+
+/* Sunset theme - warm glow */
+[data-theme="sunset"] .slide-content .mermaid {
+  background: rgba(251, 146, 60, 0.05);
+}
+
+[data-theme="sunset"] .slide-content .mermaid .node rect,
+[data-theme="sunset"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 3px 6px rgba(251, 146, 60, 0.2));
+}
+
+/* Forest theme - natural tones */
+[data-theme="forest"] .slide-content .mermaid {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+[data-theme="forest"] .slide-content .mermaid .node rect,
+[data-theme="forest"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 3px 6px rgba(34, 197, 94, 0.2));
+}
+
+/* Noir theme - dramatic shadows */
+[data-theme="noir"] .slide-content .mermaid {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="noir"] .slide-content .mermaid .node rect,
+[data-theme="noir"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Corporate theme - professional look */
+[data-theme="corporate"] .slide-content .mermaid .cluster rect {
+  stroke-width: 2px;
+}
+
+/* Lavender theme - soft purple glow */
+[data-theme="lavender"] .slide-content .mermaid {
+  background: rgba(124, 58, 237, 0.03);
+}
+
+[data-theme="lavender"] .slide-content .mermaid .node rect,
+[data-theme="lavender"] .slide-content .mermaid .node polygon {
+  filter: drop-shadow(0 3px 6px rgba(124, 58, 237, 0.15));
+}

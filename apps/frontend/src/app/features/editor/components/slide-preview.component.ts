@@ -16,8 +16,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ParsedSlide } from '@slides/markdown-parser';
-
-declare const mermaid: any;
+import { MermaidService } from '../../../core/services/mermaid.service';
 
 @Component({
   selector: 'app-slide-preview',
@@ -28,6 +27,7 @@ declare const mermaid: any;
 })
 export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterViewChecked, OnDestroy {
   private sanitizer = inject(DomSanitizer);
+  private mermaidService = inject(MermaidService);
 
   @ViewChild('slideContent') slideContentEl!: ElementRef;
   @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
@@ -49,7 +49,7 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
   @Input() set themeInput(value: string) {
     if (value !== this.theme()) {
       this.theme.set(value);
-      this.updateMermaidTheme(value);
+      this.mermaidService.initializeTheme(value);
       this.needsMermaidRender = true;
     }
   }
@@ -123,68 +123,9 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
   }
 
   private async renderMermaid() {
-    if (typeof mermaid === 'undefined') return;
     const el = this.slideContentEl?.nativeElement;
     if (!el) return;
-
-    // Reset any previously rendered diagrams so mermaid re-renders them
-    const processed = el.querySelectorAll('.mermaid[data-processed]');
-    processed.forEach((node: HTMLElement) => {
-      node.removeAttribute('data-processed');
-      // Restore original source from the data attribute if available
-      const src = node.getAttribute('data-mermaid-src');
-      if (src) {
-        node.textContent = src;
-      }
-    });
-
-    const diagrams = el.querySelectorAll('.mermaid');
-    if (diagrams.length > 0) {
-      // Store source before mermaid replaces it
-      diagrams.forEach((node: HTMLElement) => {
-        if (!node.getAttribute('data-mermaid-src') && node.textContent) {
-          node.setAttribute('data-mermaid-src', node.textContent.trim());
-        }
-      });
-      try {
-        await mermaid.run({ nodes: Array.from(diagrams) });
-      } catch {
-        // mermaid parse error - ignore
-      }
-    }
-  }
-
-  private updateMermaidTheme(themeName: string) {
-    if (typeof mermaid === 'undefined') return;
-
-    // Map slide themes to mermaid themes, with custom variable overrides
-    const darkThemes = ['dark', 'creative', 'ocean', 'sunset', 'forest', 'noir', 'cyberpunk'];
-    const mermaidTheme = darkThemes.includes(themeName) ? 'dark' : 'default';
-
-    // Read CSS custom properties from the theme to style mermaid
-    const tempEl = document.createElement('div');
-    tempEl.className = 'slide-content';
-    tempEl.setAttribute('data-theme', themeName);
-    tempEl.style.display = 'none';
-    document.body.appendChild(tempEl);
-    const styles = getComputedStyle(tempEl);
-    const bg = styles.getPropertyValue('--slide-bg').trim();
-    const text = styles.getPropertyValue('--slide-text').trim();
-    const accent = styles.getPropertyValue('--slide-accent').trim();
-    const heading = styles.getPropertyValue('--slide-heading').trim();
-    document.body.removeChild(tempEl);
-
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: mermaidTheme,
-      securityLevel: 'loose',
-      themeVariables: {
-        ...(bg && { background: bg, mainBkg: bg }),
-        ...(text && { primaryTextColor: text, secondaryTextColor: text }),
-        ...(accent && { primaryColor: accent, lineColor: accent }),
-        ...(heading && { primaryBorderColor: heading }),
-      },
-    });
+    await this.mermaidService.renderDiagrams(el);
   }
 
   async captureScreenshot(): Promise<string> {
