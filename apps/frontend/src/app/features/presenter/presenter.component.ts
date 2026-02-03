@@ -54,15 +54,31 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     this.calcScale();
     window.addEventListener('resize', this.onResize);
     const id = this.route.snapshot.paramMap.get('id') || '';
-    this.themeService.loadThemes();
-    this.presentationService.get(id).subscribe((p) => {
-      this.theme.set(p.theme);
-      this.mermaidService.initializeTheme(p.theme);
-      const parsed = parsePresentation(p.content);
-      this.slides.set(parsed.slides);
-      // View is guaranteed to be ready since HTTP is async
-      // Use setTimeout to ensure DOM has updated with new slide data
-      setTimeout(() => this.applySlideContent(), 0);
+
+    // Load themes first, then load presentation
+    this.themeService.loadThemes().then(() => {
+      this.presentationService.get(id).subscribe({
+        next: (p) => {
+          this.theme.set(p.theme);
+          this.mermaidService.initializeTheme(p.theme);
+          // Apply the theme CSS
+          const themeData = this.themeService.themes().find(t => t.name === p.theme);
+          if (themeData) {
+            this.themeService.applyTheme(themeData);
+          }
+          const parsed = parsePresentation(p.content);
+          this.slides.set(parsed.slides);
+          // Use setTimeout to ensure DOM has updated with new slide data
+          setTimeout(() => this.applySlideContent(), 0);
+        },
+        error: (err) => {
+          console.error('Failed to load presentation:', err);
+          // Redirect to login if unauthorized
+          if (err.status === 401) {
+            this.router.navigate(['/login']);
+          }
+        }
+      });
     });
   }
 
