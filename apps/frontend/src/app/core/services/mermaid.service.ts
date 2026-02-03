@@ -14,6 +14,12 @@ export class MermaidService {
     const isDark = darkThemes.includes(themeName);
     const mermaidTheme = isDark ? 'dark' : 'default';
 
+    // Default colors based on light/dark mode
+    const defaultBg = isDark ? '#1a1a2e' : '#ffffff';
+    const defaultText = isDark ? '#f8f9fa' : '#1a1a1a';
+    const defaultAccent = isDark ? '#6366f1' : '#4f46e5';
+    const defaultHeading = isDark ? '#ffffff' : '#111111';
+
     // Read CSS custom properties from the theme
     const tempEl = document.createElement('div');
     tempEl.className = 'slide-content';
@@ -21,16 +27,23 @@ export class MermaidService {
     tempEl.style.display = 'none';
     document.body.appendChild(tempEl);
     const styles = getComputedStyle(tempEl);
-    const bg = styles.getPropertyValue('--slide-bg').trim();
-    const text = styles.getPropertyValue('--slide-text').trim();
-    const accent = styles.getPropertyValue('--slide-accent').trim();
-    const heading = styles.getPropertyValue('--slide-heading').trim();
+    const bg = styles.getPropertyValue('--slide-bg').trim() || defaultBg;
+    const text = styles.getPropertyValue('--slide-text').trim() || defaultText;
+    const accent = styles.getPropertyValue('--slide-accent').trim() || defaultAccent;
+    const heading = styles.getPropertyValue('--slide-heading').trim() || defaultHeading;
     document.body.removeChild(tempEl);
 
-    // Generate complementary colors
-    const accentLight = isDark ? this.lightenColor(accent, 20) : this.darkenColor(accent, 10);
-    const accentDark = isDark ? this.darkenColor(accent, 20) : this.lightenColor(accent, 30);
-    const nodeBg = isDark ? this.lightenColor(bg, 8) : this.darkenColor(bg, 5);
+    // Generate complementary colors (only if we have valid hex colors)
+    const isValidHex = (c: string) => /^#[0-9A-Fa-f]{6}$/.test(c);
+    const accentLight = isValidHex(accent)
+      ? (isDark ? this.lightenColor(accent, 20) : this.darkenColor(accent, 10))
+      : accent;
+    const accentDark = isValidHex(accent)
+      ? (isDark ? this.darkenColor(accent, 20) : this.lightenColor(accent, 30))
+      : accent;
+    const nodeBg = isValidHex(bg)
+      ? (isDark ? this.lightenColor(bg, 8) : this.darkenColor(bg, 5))
+      : bg;
     const clusterBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
     const edgeLabelBg = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.85)';
 
