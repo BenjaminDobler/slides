@@ -1,16 +1,56 @@
 <div class="editor-layout">
   <div class="toolbar">
-    <button class="btn-back" (click)="goBack()">&larr; Back</button>
-    <input class="title-input" [(ngModel)]="title" (blur)="saveTitle()" placeholder="Presentation Title" />
+    <button class="btn-back" (click)="goBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back
+    </button>
+
+    <span class="toolbar-divider"></span>
+
+    <input
+      class="title-input"
+      [(ngModel)]="title"
+      (blur)="saveTitle()"
+      placeholder="Untitled Presentation"
+    />
+
     <app-theme-selector (themeChanged)="onThemeChanged($event)" />
-    <button class="btn-export" (click)="exportPdf()" [disabled]="exporting()">
-      {{ exporting() ? exportProgress() : 'PDF' }}
-    </button>
-    <button class="btn-present" (click)="present()">Present</button>
-    <button class="btn-ai" (click)="showAi.set(!showAi())">
-      {{ showAi() ? 'Hide AI' : 'AI Assistant' }}
-    </button>
+
+    <span class="toolbar-divider"></span>
+
+    <div class="toolbar-section toolbar-section-end">
+      <button class="btn-export" (click)="exportPdf()" [disabled]="exporting()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        {{ exporting() ? exportProgress() : 'PDF' }}
+      </button>
+
+      <button class="btn-present" (click)="present()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Present
+      </button>
+
+      <button class="btn-ai" [class.active]="showAi()" (click)="showAi.set(!showAi())">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+          <path d="M6 10v2a6 6 0 0 0 12 0v-2"/>
+          <path d="M12 18v4"/>
+          <path d="M8 22h8"/>
+        </svg>
+        {{ showAi() ? 'Hide AI' : 'AI Assistant' }}
+      </button>
+    </div>
   </div>
+
   <div class="main-area" [class.dragging]="isDragging()">
     <div class="pane thumbnails-pane" [style.width.px]="thumbnailWidth()">
       <app-slide-thumbnails
@@ -25,16 +65,20 @@
         (mediaInsert)="onMediaInsert($event)"
       />
     </div>
+
     <app-resize-divider (resized)="onResizeThumbnails($event)" />
-    <div class="pane editor-pane" [style.width.px]="editorWidth()">
+
+    <div class="pane editor-pane" [style.width.px]="showAi() ? null : editorWidth()" [style.flex]="showAi() ? '1 1 400px' : null">
       <app-markdown-editor
         [initialContent]="content()"
         (contentChange)="onContentChange($event)"
         (cursorSlideChanged)="onCursorSlideChanged($event)"
       />
     </div>
+
     <app-resize-divider (resized)="onResizeEditor($event)" />
-    <div class="pane preview-pane" [style.flex]="showAi() ? 'none' : '1'" [style.width.px]="showAi() ? previewWidth() : null">
+
+    <div class="pane preview-pane" [style.flex]="showAi() ? '1 1 400px' : '1'" [style.width.px]="null">
       <app-slide-preview
         [slidesInput]="slides()"
         [themeInput]="currentTheme()"
@@ -43,6 +87,7 @@
         (navigateToLine)="onNavigateToLine($event)"
       />
     </div>
+
     @if (showAi()) {
       <app-resize-divider (resized)="onResizePreview($event)" />
       <div class="pane ai-pane">

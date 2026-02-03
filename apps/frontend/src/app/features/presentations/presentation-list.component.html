@@ -1,21 +1,91 @@
-<div class="container">
-  <div class="header">
-    <h1>My Presentations</h1>
-    <div>
-      <button class="btn-primary" (click)="createNew()">+ New Presentation</button>
-      <button class="btn-secondary" (click)="openSettings()">Settings</button>
-      <button class="btn-secondary" (click)="logout()">Logout</button>
-    </div>
-  </div>
-  <div class="grid">
-    @for (p of presentations(); track p.id) {
-      <div class="card" (click)="open(p.id)">
-        <h3>{{ p.title }}</h3>
-        <span class="meta">{{ p.updatedAt | date:'medium' }}</span>
-        <button class="btn-delete" (click)="remove(p.id, $event)">Delete</button>
+<div class="dashboard">
+  <header class="header">
+    <div class="header-content">
+      <div class="brand">
+        <div class="logo">S</div>
+        <span class="brand-text">Slides</span>
       </div>
-    } @empty {
-      <p class="empty">No presentations yet. Create one!</p>
-    }
-  </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="openSettings()">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          </svg>
+          Settings
+        </button>
+        <button class="btn btn-ghost" (click)="logout()">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <h1 class="page-title">My Presentations</h1>
+    <p class="page-subtitle">Create and manage your slide decks</p>
+
+    <div class="grid">
+      <!-- Create new card -->
+      <div class="card card-new" (click)="createNew()">
+        <svg class="new-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span class="new-text">New Presentation</span>
+      </div>
+
+      @for (p of presentations(); track p.id) {
+        <div class="card" (click)="open(p.id)">
+          <div class="card-thumbnail">
+            <div class="thumbnail-placeholder">
+              <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8"/>
+                <path d="M12 17v4"/>
+              </svg>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-danger" (click)="remove(p.id, $event)">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Delete
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <h3 class="card-title">{{ p.title || 'Untitled Presentation' }}</h3>
+            <div class="card-meta">
+              <span>{{ p.updatedAt | date:'MMM d, y' }}</span>
+              <span class="meta-dot"></span>
+              <span>{{ p.updatedAt | date:'h:mm a' }}</span>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-state">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8"/>
+            <path d="M12 17v4"/>
+            <path d="M7 8h10M7 12h6"/>
+          </svg>
+          <h2 class="empty-title">No presentations yet</h2>
+          <p class="empty-description">Create your first presentation and start building beautiful slides with AI assistance.</p>
+          <button class="btn btn-primary" (click)="createNew()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Create Presentation
+          </button>
+        </div>
+      }
+    </div>
+  </main>
 </div>

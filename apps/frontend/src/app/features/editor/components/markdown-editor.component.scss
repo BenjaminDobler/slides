@@ -1,36 +1,217 @@
-:host { display: flex; flex-direction: column; width: 100%; }
+/* ============================================
+   MARKDOWN EDITOR
+   Obsidian Studio Design System
+   ============================================ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Toolbar */
 .editor-toolbar {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
-  height: 37px;
-  background: #111318;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  height: 44px;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 0;
+  }
 }
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .editor-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid transparent;
-  color: #8b8d98;
-  padding: 4px 8px;
-  border-radius: 4px;
+  color: var(--text-tertiary);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-mono);
   line-height: 1;
-  min-width: 28px;
-  text-align: center;
-  transition: background 0.15s, color 0.15s;
+  min-width: 32px;
+  height: 32px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+
+  &:hover {
+    background: var(--surface-overlay);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.active {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: var(--amber-400);
+  }
 }
-.editor-toolbar button:hover {
-  background: #23262f;
-  border-color: rgba(255,255,255,0.1);
-  color: #f8f9fa;
+
+/* Button with icon */
+.editor-toolbar button svg {
+  width: 16px;
+  height: 16px;
 }
+
+/* Text formatting buttons */
+.btn-bold { font-weight: 700; }
+.btn-italic { font-style: italic; }
+.btn-code { font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* Separator */
 .separator {
   width: 1px;
-  height: 18px;
-  background: rgba(255,255,255,0.1);
-  margin: 0 4px;
+  height: 20px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-2);
+  flex-shrink: 0;
 }
-.editor-container { flex: 1; min-height: 0; overflow: hidden; }
+
+/* Editor container */
+.editor-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-base);
+  position: relative;
+
+  /* Monaco editor overrides */
+  ::ng-deep {
+    .monaco-editor {
+      .margin {
+        background: var(--surface-raised) !important;
+      }
+
+      .line-numbers {
+        color: var(--text-muted) !important;
+      }
+
+      .current-line ~ .line-numbers {
+        color: var(--text-secondary) !important;
+      }
+
+      .cursor {
+        background-color: var(--amber-400) !important;
+        border-color: var(--amber-400) !important;
+      }
+
+      .selected-text {
+        background-color: rgba(245, 158, 11, 0.2) !important;
+      }
+
+      .selectionHighlight {
+        background-color: rgba(245, 158, 11, 0.1) !important;
+      }
+
+      .monaco-editor-background {
+        background: var(--surface-base) !important;
+      }
+
+      .inputarea.ime-input {
+        background: var(--surface-elevated) !important;
+        color: var(--text-primary) !important;
+      }
+    }
+
+    .monaco-scrollable-element > .scrollbar > .slider {
+      background: var(--obsidian-600) !important;
+      border-radius: var(--radius-full) !important;
+    }
+
+    .monaco-scrollable-element > .scrollbar > .slider:hover {
+      background: var(--obsidian-500) !important;
+    }
+  }
+}
+
+/* Drag overlay for media drop */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(245, 158, 11, 0.1);
+  border: 2px dashed var(--amber-500);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+
+  &.active {
+    opacity: 1;
+  }
+}
+
+.drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--amber-400);
+
+  svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  span {
+    font-size: var(--text-base);
+    font-weight: 500;
+  }
+}
+
+/* Tooltip for toolbar buttons */
+[data-tooltip] {
+  position: relative;
+
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    padding: var(--space-1) var(--space-2);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+    z-index: 1000;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+}
