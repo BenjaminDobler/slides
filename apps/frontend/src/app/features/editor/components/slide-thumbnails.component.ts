@@ -1,8 +1,8 @@
-import { Component, inject, output, signal, Input, ElementRef, ViewChild, AfterViewInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, inject, output, signal, Input, ElementRef, ViewChild, ViewChildren, QueryList, AfterViewInit, AfterViewChecked, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 import { MediaLibraryComponent } from './media-library.component';
+import { MermaidService } from '../../../core/services/mermaid.service';
 
 @Component({
   selector: 'app-slide-thumbnails',
@@ -11,20 +11,48 @@ import { MediaLibraryComponent } from './media-library.component';
   templateUrl: './slide-thumbnails.component.html',
   styleUrl: './slide-thumbnails.component.scss',
 })
-export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
-  private sanitizer = inject(DomSanitizer);
+export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
+  private mermaidService = inject(MermaidService);
 
   @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
+  @ViewChildren('thumbContent') thumbContentEls!: QueryList<ElementRef<HTMLDivElement>>;
   thumbScale = signal(0.19);
   activeTab = signal<'slides' | 'library'>('slides');
   private resizeObserver?: ResizeObserver;
+  private needsContentUpdate = false;
+  private lastSlidesJson = '';
 
   ngAfterViewInit() {
     this.observeThumbList();
   }
 
+  ngAfterViewChecked() {
+    if (this.needsContentUpdate && this.thumbContentEls) {
+      this.needsContentUpdate = false;
+      this.applySlideContent();
+    }
+  }
+
   ngOnDestroy() {
     this.resizeObserver?.disconnect();
+  }
+
+  private async applySlideContent() {
+    const slides = this.slides();
+    const els = this.thumbContentEls.toArray();
+
+    // Set innerHTML for each thumbnail
+    els.forEach((elRef, i) => {
+      if (slides[i]) {
+        elRef.nativeElement.innerHTML = slides[i].html;
+      }
+    });
+
+    // Render Mermaid diagrams in all thumbnails
+    const container = this.thumbListEl?.nativeElement;
+    if (container) {
+      await this.mermaidService.renderDiagrams(container);
+    }
   }
 
   private observeThumbList() {
@@ -43,13 +71,24 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   }
 
   @Input() set slidesInput(value: ParsedSlide[]) {
-    this.slides.set(value || []);
+    const newSlides = value || [];
+    // Check if content actually changed to avoid unnecessary re-renders
+    const newJson = JSON.stringify(newSlides.map(s => s.html));
+    if (newJson !== this.lastSlidesJson) {
+      this.lastSlidesJson = newJson;
+      this.slides.set(newSlides);
+      this.needsContentUpdate = true;
+    }
   }
   @Input() set selectedIndex(value: number) {
     this.currentIndex.set(value);
   }
   @Input() set themeInput(value: string) {
-    this.theme.set(value);
+    if (value !== this.theme()) {
+      this.theme.set(value);
+      this.mermaidService.initializeTheme(value);
+      this.needsContentUpdate = true;
+    }
   }
 
   slideSelected = output<number>();
@@ -67,10 +106,6 @@ export class SlideThumbnailsComponent implements AfterViewInit, OnDestroy {
   contextMenuVisible = signal(false);
   contextMenuPos = signal({ x: 0, y: 0 });
   private contextMenuIndex = 0;
-
-  getHtml(slide: ParsedSlide): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(slide.html);
-  }
 
   selectSlide(index: number) {
     this.currentIndex.set(index);

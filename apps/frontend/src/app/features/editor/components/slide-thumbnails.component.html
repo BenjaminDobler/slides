@@ -23,7 +23,7 @@
         >
           <div class="thumbnail-number">{{ $index + 1 }}</div>
           <div class="thumbnail-inner">
-            <div class="thumbnail-content slide-content" [attr.data-theme]="theme()" [innerHTML]="getHtml(slide)" [style.transform]="'scale(' + thumbScale() + ')'"></div>
+            <div #thumbContent class="thumbnail-content slide-content" [attr.data-theme]="theme()" [style.transform]="'scale(' + thumbScale() + ')'"></div>
           </div>
         </div>
       }
