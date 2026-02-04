@@ -78,7 +78,7 @@
 
     <app-resize-divider (resized)="onResizeThumbnails($event)" />
 
-    <div class="pane editor-pane" [style.width.px]="showAi() ? null : editorWidth()" [style.flex]="showAi() ? '1 1 400px' : null">
+    <div class="pane editor-pane" [style.width.px]="showAi() ? null : editorWidth()" [style.flex]="showAi() ? '1 1 400px' : '0 0 auto'">
       <app-markdown-editor
         [initialContent]="content()"
         (contentChange)="onContentChange($event)"
@@ -88,7 +88,7 @@
 
     <app-resize-divider (resized)="onResizeEditor($event)" />
 
-    <div class="pane preview-pane" [style.flex]="showAi() ? '1 1 400px' : '1'" [style.width.px]="null">
+    <div class="pane preview-pane" [style.width.px]="showAi() ? null : previewWidth()" [style.flex]="showAi() ? '1 1 400px' : '0 0 auto'">
       <app-slide-preview
         [slidesInput]="slides()"
         [themeInput]="currentTheme()"

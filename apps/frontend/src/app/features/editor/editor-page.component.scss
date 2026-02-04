@@ -269,14 +269,12 @@
 .preview-pane {
   min-width: 200px;
   background: var(--surface-base);
-  flex: 1 1 auto !important;
 }
 
 .editor-pane {
   display: flex;
   flex-direction: column;
   background: var(--surface-base);
-  flex: 1 1 auto !important;
   min-width: 300px;
 
   ::ng-deep app-markdown-editor {

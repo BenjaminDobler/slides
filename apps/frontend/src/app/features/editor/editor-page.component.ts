@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -174,7 +174,6 @@ export class EditorPageComponent implements OnInit {
     const diff = newThumb - this.thumbnailWidth();
     this.thumbnailWidth.set(newThumb);
     this.editorWidth.update((w) => Math.max(150, w - diff));
-    setTimeout(() => this.isDragging.set(false), 50);
   }
 
   onResizeEditor(delta: number) {
@@ -182,17 +181,20 @@ export class EditorPageComponent implements OnInit {
     const newEditor = Math.max(150, this.editorWidth() + delta);
     const diff = newEditor - this.editorWidth();
     this.editorWidth.set(newEditor);
-    if (this.showAi()) {
-      this.previewWidth.update((w) => Math.max(200, w - diff));
-    }
-    setTimeout(() => this.isDragging.set(false), 50);
+    this.previewWidth.update((w) => Math.max(200, w - diff));
   }
 
   onResizePreview(delta: number) {
     this.isDragging.set(true);
     const newPreview = Math.max(200, this.previewWidth() + delta);
     this.previewWidth.set(newPreview);
-    setTimeout(() => this.isDragging.set(false), 50);
+  }
+
+  @HostListener('document:mouseup')
+  onResizeEnd() {
+    if (this.isDragging()) {
+      this.isDragging.set(false);
+    }
   }
 
   // --- Other ---
