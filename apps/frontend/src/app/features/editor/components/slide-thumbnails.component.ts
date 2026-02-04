@@ -20,6 +20,7 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   activeTab = signal<'slides' | 'library'>('slides');
   private resizeObserver?: ResizeObserver;
   private needsContentUpdate = false;
+  private needsReobserve = false;
   private lastSlidesJson = '';
 
   ngAfterViewInit() {
@@ -27,6 +28,10 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   }
 
   ngAfterViewChecked() {
+    if (this.needsReobserve && this.thumbListEl?.nativeElement) {
+      this.needsReobserve = false;
+      this.observeThumbList();
+    }
     if (this.needsContentUpdate && this.thumbContentEls) {
       this.needsContentUpdate = false;
       this.applySlideContent();
@@ -106,6 +111,14 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   contextMenuVisible = signal(false);
   contextMenuPos = signal({ x: 0, y: 0 });
   private contextMenuIndex = 0;
+
+  switchTab(tab: 'slides' | 'library') {
+    this.activeTab.set(tab);
+    if (tab === 'slides') {
+      this.needsContentUpdate = true;
+      this.needsReobserve = true;
+    }
+  }
 
   selectSlide(index: number) {
     this.currentIndex.set(index);

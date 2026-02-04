@@ -1,11 +1,41 @@
 #!/usr/bin/env node
 
+import { readFile } from 'node:fs/promises';
+import { extname, basename } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
 const BACKEND_URL = process.env.SLIDES_BACKEND_URL || 'http://localhost:3332';
 const AUTH_TOKEN = process.env.SLIDES_AUTH_TOKEN || '';
+
+const MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp',
+  '.ico': 'image/x-icon',
+  '.tiff': 'image/tiff',
+  '.tif': 'image/tiff',
+  '.avif': 'image/avif',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogg': 'video/ogg',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.flac': 'audio/flac',
+  '.aac': 'audio/aac',
+};
+
+function getMimeType(filename: string): string {
+  const ext = extname(filename).toLowerCase();
+  return MIME_TYPES[ext] || 'application/octet-stream';
+}
 
 async function api(method: string, path: string, body?: unknown) {
   const res = await fetch(`${BACKEND_URL}${path}`, {
@@ -19,6 +49,22 @@ async function api(method: string, path: string, body?: unknown) {
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`API ${method} ${path} failed (${res.status}): ${err}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function apiUpload(path: string, formData: FormData) {
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${AUTH_TOKEN}`,
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`API POST ${path} failed (${res.status}): ${err}`);
   }
   return res.json();
 }
@@ -197,6 +243,86 @@ server.tool(
         {
           type: 'text' as const,
           text: JSON.stringify(updated, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  'list_media',
+  'List all media files in the media library. Returns an array of media items with id, filename, originalName, mimeType, size, url, and createdAt.',
+  {},
+  async () => {
+    const media = await api('GET', '/api/media');
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(media, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  'upload_media',
+  'Upload a media file to the media library from a local file path or a URL. Returns the media metadata and a markdown image snippet for use in slides.',
+  {
+    source: z.string().describe('Local file path or URL (http/https) of the media file to upload'),
+    filename: z.string().optional().describe('Optional custom filename override. If not provided, the original filename is used.'),
+  },
+  async ({ source, filename }) => {
+    let buffer: Buffer;
+    let name: string;
+    let mimeType: string;
+
+    if (source.startsWith('http://') || source.startsWith('https://')) {
+      const res = await fetch(source);
+      if (!res.ok) {
+        throw new Error(`Failed to download ${source}: ${res.status} ${res.statusText}`);
+      }
+      buffer = Buffer.from(await res.arrayBuffer());
+      const urlPath = new URL(source).pathname;
+      name = filename || basename(urlPath) || 'download';
+      const contentType = res.headers.get('content-type');
+      mimeType = contentType?.split(';')[0].trim() || getMimeType(name);
+    } else {
+      buffer = await readFile(source);
+      name = filename || basename(source);
+      mimeType = getMimeType(name);
+    }
+
+    const file = new File([buffer], name, { type: mimeType });
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const media = await apiUpload('/api/media', formData);
+    const markdownSnippet = `![${media.originalName || name}](${media.url})`;
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({ ...media, markdownSnippet }, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  'delete_media',
+  'Delete a media file from the media library by its ID',
+  { id: z.string().describe('Media file ID') },
+  async ({ id }) => {
+    await api('DELETE', `/api/media/${id}`);
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Media ${id} deleted successfully.`,
         },
       ],
     };

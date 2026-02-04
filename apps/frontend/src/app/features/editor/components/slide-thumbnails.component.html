@@ -1,7 +1,7 @@
 <div class="thumbnails-container">
   <div class="tab-bar">
-    <button class="tab" [class.active]="activeTab() === 'slides'" (click)="activeTab.set('slides')">Slides</button>
-    <button class="tab" [class.active]="activeTab() === 'library'" (click)="activeTab.set('library')">Library</button>
+    <button class="tab" [class.active]="activeTab() === 'slides'" (click)="switchTab('slides')">Slides</button>
+    <button class="tab" [class.active]="activeTab() === 'library'" (click)="switchTab('library')">Library</button>
   </div>
   @if (activeTab() === 'slides') {
     <div class="thumbnails-list" #thumbList>
