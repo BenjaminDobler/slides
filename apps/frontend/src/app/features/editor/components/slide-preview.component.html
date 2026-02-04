@@ -3,6 +3,7 @@
     <button (click)="prev()" [disabled]="currentIndex() === 0">&lt;</button>
     <span>{{ currentIndex() + 1 }} / {{ slides().length || 1 }}</span>
     <button (click)="next()" [disabled]="currentIndex() >= slides().length - 1">&gt;</button>
+    <span class="layout-badge" [class.no-layout]="!currentSlide()?.appliedLayout">{{ currentSlide()?.appliedLayout || 'No Layout' }}</span>
   </div>
   <div class="slide-area" #slideArea>
     <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'" >

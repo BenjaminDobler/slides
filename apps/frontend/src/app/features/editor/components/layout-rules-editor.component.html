@@ -1,0 +1,272 @@
+<div class="overlay" (click)="closed.emit()"></div>
+<div class="modal">
+  <div class="modal-header">
+    <h2>Layout Rules</h2>
+    <button class="btn-close" (click)="closed.emit()">&times;</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-bar">{{ error() }}</div>
+  }
+
+  @if (view() === 'list') {
+    <div class="list-section">
+      <p class="list-description">Rules are checked in priority order (lowest first). The first matching rule is applied.</p>
+      <div class="rules-list">
+        @for (rule of rules(); track rule.id) {
+          <div class="rule-item" [class.disabled]="!rule.enabled">
+            <div class="rule-info">
+              <div class="rule-header">
+                <span class="rule-name">{{ rule.displayName }}</span>
+                <span class="rule-priority">P{{ rule.priority }}</span>
+                @if (rule.isDefault) {
+                  <span class="badge badge-default">Default</span>
+                }
+                @if (!rule.enabled) {
+                  <span class="badge badge-disabled">Disabled</span>
+                }
+              </div>
+              @if (rule.description) {
+                <div class="rule-desc">{{ rule.description }}</div>
+              }
+              <div class="rule-meta">
+                <span class="rule-type">{{ rule.transform.type }}</span>
+              </div>
+            </div>
+            <div class="rule-actions">
+              @if (!rule.isDefault) {
+                <button class="btn-icon" (click)="toggleEnabled(rule)" [title]="rule.enabled ? 'Disable' : 'Enable'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    @if (rule.enabled) {
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    } @else {
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    }
+                  </svg>
+                </button>
+                <button class="btn-icon" (click)="startEdit(rule)" title="Edit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button class="btn-icon btn-danger" (click)="deleteRule(rule)" title="Delete">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              } @else {
+                <span class="default-hint">Built-in</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="list-footer">
+        <button class="btn-new" (click)="startNew()">+ New Rule</button>
+      </div>
+    </div>
+  }
+
+  @if (view() === 'edit') {
+    <div class="edit-section">
+      <button class="btn-back-link" (click)="backToList()">&larr; Back to list</button>
+
+      <div class="form-row">
+        <label>Rule Name (unique ID)</label>
+        <input [(ngModel)]="name" placeholder="my-custom-layout" [disabled]="!!editingRule()" />
+      </div>
+      <div class="form-row">
+        <label>Display Name</label>
+        <input [(ngModel)]="displayName" placeholder="My Custom Layout" />
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <input [(ngModel)]="description" placeholder="Optional description" />
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row">
+          <label>Priority (lower = checked first)</label>
+          <input type="number" [(ngModel)]="priority" min="0" />
+        </div>
+        <div class="form-row">
+          <label>Enabled</label>
+          <select [(ngModel)]="enabled">
+            <option [ngValue]="true">Yes</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>Conditions</h3>
+      <p class="section-hint">All specified conditions must match (AND logic). "Any" means not checked.</p>
+
+      <div class="conditions-grid">
+        <div class="cond-toggle">
+          <label>Has Heading</label>
+          <button class="btn-toggle" (click)="cycleBool('condHasHeading')" [class.yes]="condHasHeading === true" [class.no]="condHasHeading === false">
+            {{ boolLabel(condHasHeading) }}
+          </button>
+        </div>
+        <div class="cond-toggle">
+          <label>Has Cards</label>
+          <button class="btn-toggle" (click)="cycleBool('condHasCards')" [class.yes]="condHasCards === true" [class.no]="condHasCards === false">
+            {{ boolLabel(condHasCards) }}
+          </button>
+        </div>
+        <div class="cond-toggle">
+          <label>Has List</label>
+          <button class="btn-toggle" (click)="cycleBool('condHasList')" [class.yes]="condHasList === true" [class.no]="condHasList === false">
+            {{ boolLabel(condHasList) }}
+          </button>
+        </div>
+        <div class="cond-toggle">
+          <label>Has Code Block</label>
+          <button class="btn-toggle" (click)="cycleBool('condHasCodeBlock')" [class.yes]="condHasCodeBlock === true" [class.no]="condHasCodeBlock === false">
+            {{ boolLabel(condHasCodeBlock) }}
+          </button>
+        </div>
+        <div class="cond-toggle">
+          <label>Has Blockquote</label>
+          <button class="btn-toggle" (click)="cycleBool('condHasBlockquote')" [class.yes]="condHasBlockquote === true" [class.no]="condHasBlockquote === false">
+            {{ boolLabel(condHasBlockquote) }}
+          </button>
+        </div>
+      </div>
+
+      <div class="numeric-conditions">
+        <div class="numeric-row">
+          <label>
+            <input type="checkbox" [(ngModel)]="condImageCountEnabled" />
+            Image Count
+          </label>
+          @if (condImageCountEnabled) {
+            <select [(ngModel)]="condImageCountOp">
+              <option value="eq">=</option>
+              <option value="gte">&gt;=</option>
+              <option value="lte">&lt;=</option>
+              <option value="gt">&gt;</option>
+            </select>
+            <input type="number" [(ngModel)]="condImageCountVal" min="0" />
+          }
+        </div>
+        <div class="numeric-row">
+          <label>
+            <input type="checkbox" [(ngModel)]="condH3CountEnabled" />
+            H3 Count
+          </label>
+          @if (condH3CountEnabled) {
+            <select [(ngModel)]="condH3CountOp">
+              <option value="eq">=</option>
+              <option value="gte">&gt;=</option>
+              <option value="lte">&lt;=</option>
+              <option value="gt">&gt;</option>
+            </select>
+            <input type="number" [(ngModel)]="condH3CountVal" min="0" />
+          }
+        </div>
+        <div class="numeric-row">
+          <label>
+            <input type="checkbox" [(ngModel)]="condTextParaEnabled" />
+            Text Paragraphs
+          </label>
+          @if (condTextParaEnabled) {
+            <select [(ngModel)]="condTextParaOp">
+              <option value="eq">=</option>
+              <option value="gte">&gt;=</option>
+              <option value="lte">&lt;=</option>
+              <option value="gt">&gt;</option>
+            </select>
+            <input type="number" [(ngModel)]="condTextParaVal" min="0" />
+          }
+        </div>
+      </div>
+
+      <h3>Transform</h3>
+      <div class="form-row">
+        <label>Type</label>
+        <select [(ngModel)]="transformType">
+          <option value="wrap">Wrap (single container)</option>
+          <option value="split-two">Split Two (left/right columns)</option>
+          <option value="split-top-bottom">Split Top/Bottom (text + grid)</option>
+          <option value="group-by-heading">Group by Heading (multi-column)</option>
+        </select>
+      </div>
+
+      @if (transformType === 'wrap') {
+        <div class="form-row">
+          <label>Container Class Name</label>
+          <input [(ngModel)]="wrapClassName" placeholder="layout-hero" />
+        </div>
+      }
+
+      @if (transformType === 'split-two') {
+        <div class="form-row">
+          <label>Container Class</label>
+          <input [(ngModel)]="splitTwoClassName" placeholder="layout-text-image" />
+        </div>
+        <div class="form-row">
+          <label>Left Content</label>
+          <select [(ngModel)]="splitTwoLeftSelector">
+            <option value="text">Text (non-media)</option>
+            <option value="cards">Cards (non-media)</option>
+          </select>
+        </div>
+        <div class="form-row-inline">
+          <div class="form-row">
+            <label>Left Class</label>
+            <input [(ngModel)]="splitTwoLeftClassName" placeholder="layout-body" />
+          </div>
+          <div class="form-row">
+            <label>Right Class</label>
+            <input [(ngModel)]="splitTwoRightClassName" placeholder="layout-media" />
+          </div>
+        </div>
+      }
+
+      @if (transformType === 'split-top-bottom') {
+        <div class="form-row">
+          <label>Grid Class</label>
+          <input [(ngModel)]="splitTopBottomClassName" placeholder="layout-image-grid" />
+        </div>
+      }
+
+      @if (transformType === 'group-by-heading') {
+        <div class="form-row">
+          <label>Heading Level</label>
+          <select [(ngModel)]="groupHeadingLevel">
+            <option [ngValue]="2">H2</option>
+            <option [ngValue]="3">H3</option>
+            <option [ngValue]="4">H4</option>
+          </select>
+        </div>
+        <div class="form-row-inline">
+          <div class="form-row">
+            <label>Container Class</label>
+            <input [(ngModel)]="groupContainerClassName" placeholder="layout-sections" />
+          </div>
+          <div class="form-row">
+            <label>Column Class</label>
+            <input [(ngModel)]="groupColumnClassName" placeholder="layout-section-col" />
+          </div>
+        </div>
+      }
+
+      <h3>CSS</h3>
+      <div class="form-row">
+        <label>CSS rules for this layout (injected when rule is enabled)</label>
+        <textarea [(ngModel)]="cssContent" rows="10" placeholder=".slide-content .layout-my-class { ... }"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="backToList()">Cancel</button>
+      <button class="btn-save" (click)="save()" [disabled]="saving() || !name || !displayName">
+        {{ saving() ? 'Saving...' : (editingRule() ? 'Update Rule' : 'Create Rule') }}
+      </button>
+    </div>
+  }
+</div>

@@ -191,6 +191,188 @@ const themes = [
   },
 ];
 
+const layoutRules = [
+  {
+    name: 'sections',
+    displayName: 'Sections',
+    description: 'Groups content by h3 headings into equal columns',
+    priority: 10,
+    isDefault: true,
+    conditions: JSON.stringify({
+      h3Count: { gte: 2 },
+      imageCount: { eq: 0 },
+      hasCards: false,
+    }),
+    transform: JSON.stringify({
+      type: 'group-by-heading',
+      options: {
+        headingLevel: 3,
+        containerClassName: 'layout-sections',
+        columnClassName: 'layout-section-col',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 2rem;
+  flex: 1;
+  min-height: 0;
+}
+.slide-content .layout-section-col h3 {
+  margin-top: 0;
+}
+.slide-content .layout-section-col ul,
+.slide-content .layout-section-col ol {
+  padding-left: 1.2em;
+}
+`,
+  },
+  {
+    name: 'hero',
+    displayName: 'Hero',
+    description: 'Centered title slide with optional subtitle',
+    priority: 20,
+    isDefault: true,
+    conditions: JSON.stringify({
+      hasHeading: true,
+      imageCount: { eq: 0 },
+      hasCards: false,
+      hasList: false,
+      hasCodeBlock: false,
+      hasBlockquote: false,
+      textParagraphCount: { lte: 1 },
+    }),
+    transform: JSON.stringify({
+      type: 'wrap',
+      options: {
+        className: 'layout-hero',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+}
+.slide-content .layout-hero h1 { font-size: 3rem; }
+.slide-content .layout-hero h2 { font-size: 2.2rem; }
+`,
+  },
+  {
+    name: 'cards-image',
+    displayName: 'Cards + Image',
+    description: 'Card grid on the left, image on the right',
+    priority: 30,
+    isDefault: true,
+    conditions: JSON.stringify({
+      hasCards: true,
+      imageCount: { gt: 0 },
+    }),
+    transform: JSON.stringify({
+      type: 'split-two',
+      options: {
+        className: 'layout-cards-image',
+        leftSelector: 'cards',
+        rightSelector: 'media',
+        leftClassName: 'layout-cards-side',
+        rightClassName: 'layout-media-side',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-cards-image {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+  height: 100%;
+}
+.slide-content .layout-media-side img,
+.slide-content .layout-media-side figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+`,
+  },
+  {
+    name: 'image-grid',
+    displayName: 'Image Grid',
+    description: 'Text on top, multiple images in a grid below',
+    priority: 40,
+    isDefault: true,
+    conditions: JSON.stringify({
+      hasHeading: true,
+      imageCount: { gte: 2 },
+    }),
+    transform: JSON.stringify({
+      type: 'split-top-bottom',
+      options: {
+        className: 'layout-image-grid',
+        bottomSelector: 'media',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+.slide-content .layout-image-grid img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+.slide-content .layout-image-grid figure {
+  margin: 0;
+}
+`,
+  },
+  {
+    name: 'text-image',
+    displayName: 'Text + Image',
+    description: 'Text on the left, single image on the right',
+    priority: 50,
+    isDefault: true,
+    conditions: JSON.stringify({
+      hasHeading: true,
+      imageCount: { eq: 1 },
+    }),
+    transform: JSON.stringify({
+      type: 'split-two',
+      options: {
+        className: 'layout-text-image',
+        leftSelector: 'text',
+        rightSelector: 'media',
+        leftClassName: 'layout-body',
+        rightClassName: 'layout-media',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-text-image {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  height: 100%;
+}
+.slide-content .layout-media img,
+.slide-content .layout-media figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+`,
+  },
+];
+
 async function main() {
   for (const theme of themes) {
     await prisma.theme.upsert({
@@ -200,6 +382,22 @@ async function main() {
     });
   }
   console.log('Seeded themes');
+
+  for (const rule of layoutRules) {
+    await prisma.layoutRule.upsert({
+      where: { name: rule.name },
+      update: {
+        displayName: rule.displayName,
+        description: rule.description,
+        priority: rule.priority,
+        conditions: rule.conditions,
+        transform: rule.transform,
+        cssContent: rule.cssContent,
+      },
+      create: rule,
+    });
+  }
+  console.log('Seeded layout rules');
 }
 
 main()

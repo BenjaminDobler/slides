@@ -1,12 +1,70 @@
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 
+// Layout rule types (mirrored from @slides/shared-types to avoid cross-lib build dependency)
+
+interface NumericCondition {
+  eq?: number;
+  gte?: number;
+  lte?: number;
+  gt?: number;
+}
+
+interface LayoutConditions {
+  hasHeading?: boolean;
+  imageCount?: NumericCondition;
+  figureCount?: NumericCondition;
+  h3Count?: NumericCondition;
+  textParagraphCount?: NumericCondition;
+  hasCards?: boolean;
+  hasList?: boolean;
+  hasCodeBlock?: boolean;
+  hasBlockquote?: boolean;
+}
+
+interface WrapOptions {
+  className: string;
+}
+
+interface SplitTwoOptions {
+  className: string;
+  leftSelector: 'text' | 'cards';
+  rightSelector: 'media';
+  leftClassName: string;
+  rightClassName: string;
+}
+
+interface SplitTopBottomOptions {
+  className: string;
+  bottomSelector: 'media';
+}
+
+interface GroupByHeadingOptions {
+  headingLevel: number;
+  containerClassName: string;
+  columnClassName: string;
+}
+
+interface LayoutTransform {
+  type: 'wrap' | 'split-two' | 'split-top-bottom' | 'group-by-heading';
+  options: WrapOptions | SplitTwoOptions | SplitTopBottomOptions | GroupByHeadingOptions;
+}
+
+export interface LayoutRuleInput {
+  enabled: boolean;
+  displayName: string;
+  conditions: LayoutConditions;
+  transform: LayoutTransform;
+}
+
 export interface ParsedSlide {
   content: string;
   html: string;
   notes?: string;
   /** Line offset of this slide in the full document (0-based) */
   lineOffset: number;
+  /** Display name of the auto-layout rule applied to this slide, if any */
+  appliedLayout?: string;
 }
 
 export interface ParsedPresentation {
@@ -108,13 +166,204 @@ function transformImageCaptions(html: string): string {
   return result;
 }
 
+// === Content analysis ===
+
+export interface ContentFeatures {
+  hasHeading: boolean;
+  imageCount: number;
+  figureCount: number;
+  h3Count: number;
+  textParagraphCount: number;
+  hasCards: boolean;
+  hasList: boolean;
+  hasCodeBlock: boolean;
+  hasBlockquote: boolean;
+}
+
+export function analyzeContent(html: string): ContentFeatures {
+  const hasHeading = /<h[1-3][^>]*>/.test(html);
+  const images = html.match(/<img [^>]+>/g) || [];
+  const figures = html.match(/<figure[^>]*>/g) || [];
+  const imageCount = images.length;
+  const figureCount = figures.length;
+  const hasCards = html.includes('slide-card-grid');
+  const hasBlockquote = /<blockquote/.test(html);
+  const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
+  const hasCodeBlock = /<pre[^>]*>/.test(html);
+  const paragraphs = html.match(/<p[^>]*>[\s\S]*?<\/p>/g) || [];
+  const textParagraphs = paragraphs.filter(
+    (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
+  );
+  const h3Count = (html.match(/<h3[^>]*>/g) || []).length;
+
+  return {
+    hasHeading,
+    imageCount,
+    figureCount,
+    h3Count,
+    textParagraphCount: textParagraphs.length,
+    hasCards,
+    hasList,
+    hasCodeBlock,
+    hasBlockquote,
+  };
+}
+
+// === Condition matching ===
+
+function matchNumeric(value: number, cond: NumericCondition): boolean {
+  if (cond.eq !== undefined && value !== cond.eq) return false;
+  if (cond.gte !== undefined && value < cond.gte) return false;
+  if (cond.lte !== undefined && value > cond.lte) return false;
+  if (cond.gt !== undefined && value <= cond.gt) return false;
+  return true;
+}
+
+export function matchesConditions(features: ContentFeatures, conditions: LayoutConditions): boolean {
+  if (conditions.hasHeading !== undefined && features.hasHeading !== conditions.hasHeading) return false;
+  if (conditions.hasCards !== undefined && features.hasCards !== conditions.hasCards) return false;
+  if (conditions.hasList !== undefined && features.hasList !== conditions.hasList) return false;
+  if (conditions.hasCodeBlock !== undefined && features.hasCodeBlock !== conditions.hasCodeBlock) return false;
+  if (conditions.hasBlockquote !== undefined && features.hasBlockquote !== conditions.hasBlockquote) return false;
+  if (conditions.imageCount && !matchNumeric(features.imageCount, conditions.imageCount)) return false;
+  if (conditions.figureCount && !matchNumeric(features.figureCount, conditions.figureCount)) return false;
+  if (conditions.h3Count && !matchNumeric(features.h3Count, conditions.h3Count)) return false;
+  if (conditions.textParagraphCount && !matchNumeric(features.textParagraphCount, conditions.textParagraphCount)) return false;
+  return true;
+}
+
+// === Transform application ===
+
+export function applyTransform(html: string, transform: LayoutTransform, features: ContentFeatures): string {
+  switch (transform.type) {
+    case 'wrap': {
+      const opts = transform.options as WrapOptions;
+      return `<div class="${opts.className}">${html}</div>`;
+    }
+
+    case 'split-two': {
+      const opts = transform.options as SplitTwoOptions;
+      const leftParts: string[] = [];
+      const rightParts: string[] = [];
+      const parts = splitTopLevel(html);
+
+      if (opts.leftSelector === 'cards') {
+        // Cards + media split
+        for (const part of parts) {
+          if (/<img [^>]+>/.test(part) && !part.includes('slide-card')) {
+            rightParts.push(part);
+          } else if (/<figure[^>]*>/.test(part)) {
+            rightParts.push(part);
+          } else {
+            leftParts.push(part);
+          }
+        }
+      } else {
+        // Text + media split (text left, first media right)
+        for (const part of parts) {
+          if ((/<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part)) && rightParts.length === 0) {
+            rightParts.push(part);
+          } else {
+            leftParts.push(part);
+          }
+        }
+      }
+
+      if (rightParts.length > 0 && leftParts.length > 0) {
+        return `<div class="${opts.className}"><div class="${opts.leftClassName}">${leftParts.join('\n')}</div><div class="${opts.rightClassName}">${rightParts.join('\n')}</div></div>`;
+      }
+      return html;
+    }
+
+    case 'split-top-bottom': {
+      const opts = transform.options as SplitTopBottomOptions;
+      const topParts: string[] = [];
+      const gridParts: string[] = [];
+      const parts = splitTopLevel(html);
+
+      for (const part of parts) {
+        if (/<figure[^>]*>/.test(part) || /<p[^>]*>\s*<img /.test(part)) {
+          gridParts.push(part);
+        } else {
+          topParts.push(part);
+        }
+      }
+
+      if (gridParts.length >= 2) {
+        return `${topParts.join('\n')}\n<div class="${opts.className}">${gridParts.join('\n')}</div>`;
+      }
+      return html;
+    }
+
+    case 'group-by-heading': {
+      const opts = transform.options as GroupByHeadingOptions;
+      const headingTag = `h${opts.headingLevel}`;
+      const headingRegex = new RegExp(`<${headingTag}[^>]*>`);
+      const parts = splitTopLevel(html);
+      const headerParts: string[] = [];
+      const sections: string[][] = [];
+      let current: string[] | null = null;
+
+      for (const part of parts) {
+        if (headingRegex.test(part)) {
+          if (current) sections.push(current);
+          current = [part];
+        } else if (current) {
+          current.push(part);
+        } else {
+          headerParts.push(part);
+        }
+      }
+      if (current) sections.push(current);
+
+      if (sections.length >= 2) {
+        const header = headerParts.length > 0 ? headerParts.join('\n') : '';
+        const cols = sections.map(s => `<div class="${opts.columnClassName}">${s.join('\n')}</div>`).join('\n');
+        return `${header}\n<div class="${opts.containerClassName}">${cols}</div>`;
+      }
+      return html;
+    }
+
+    default:
+      return html;
+  }
+}
+
+// === Rule engine ===
+
+interface LayoutResult {
+  html: string;
+  appliedLayout?: string;
+}
+
+export function applyAutoLayoutWithRules(html: string, rules: LayoutRuleInput[]): LayoutResult {
+  // Skip if manual columns layout is present
+  if (html.includes('slide-columns')) return { html, appliedLayout: 'Columns (manual)' };
+
+  const features = analyzeContent(html);
+  const enabledRules = rules.filter(r => r.enabled);
+
+  for (const rule of enabledRules) {
+    if (matchesConditions(features, rule.conditions)) {
+      return {
+        html: applyTransform(html, rule.transform, features),
+        appliedLayout: rule.displayName,
+      };
+    }
+  }
+
+  return { html };
+}
+
+// === Legacy hardcoded auto-layout (fallback) ===
+
 /**
  * Detects content patterns in rendered slide HTML and wraps in layout containers.
  * Skips slides that already use manual <!-- columns --> layout.
  */
-function applyAutoLayout(html: string): string {
+function applyAutoLayout(html: string): LayoutResult {
   // Skip if manual columns layout is present
-  if (html.includes('slide-columns')) return html;
+  if (html.includes('slide-columns')) return { html, appliedLayout: 'Columns (manual)' };
 
   // Analyze top-level content
   const hasHeading = /<h[1-3][^>]*>/.test(html);
@@ -132,6 +381,33 @@ function applyAutoLayout(html: string): string {
     (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
   );
 
+  // Sections: h1/h2 title + 2+ h3 sections each followed by a list → multi-column
+  const h3Count = (html.match(/<h3[^>]*>/g) || []).length;
+  if (h3Count >= 2 && imageCount === 0 && !hasCards) {
+    const parts = splitTopLevel(html);
+    const headerParts: string[] = [];
+    const sections: string[][] = [];
+    let current: string[] | null = null;
+
+    for (const part of parts) {
+      if (/<h3[^>]*>/.test(part)) {
+        if (current) sections.push(current);
+        current = [part];
+      } else if (current) {
+        current.push(part);
+      } else {
+        headerParts.push(part);
+      }
+    }
+    if (current) sections.push(current);
+
+    if (sections.length >= 2) {
+      const header = headerParts.length > 0 ? headerParts.join('\n') : '';
+      const cols = sections.map(s => `<div class="layout-section-col">${s.join('\n')}</div>`).join('\n');
+      return { html: `${header}\n<div class="layout-sections">${cols}</div>`, appliedLayout: 'Sections' };
+    }
+  }
+
   // Hero: only headings + at most 1 short text paragraph, no images/lists/cards/code
   if (
     hasHeading &&
@@ -142,7 +418,7 @@ function applyAutoLayout(html: string): string {
     !hasBlockquote &&
     textParagraphs.length <= 1
   ) {
-    return `<div class="layout-hero">${html}</div>`;
+    return { html: `<div class="layout-hero">${html}</div>`, appliedLayout: 'Hero' };
   }
 
   // Cards + Image: has card grid and at least one image not inside cards
@@ -165,7 +441,7 @@ function applyAutoLayout(html: string): string {
     }
 
     if (mediaParts.length > 0) {
-      return `<div class="layout-cards-image"><div class="layout-cards-side">${cardAndTextParts.join('\n')}</div><div class="layout-media-side">${mediaParts.join('\n')}</div></div>`;
+      return { html: `<div class="layout-cards-image"><div class="layout-cards-side">${cardAndTextParts.join('\n')}</div><div class="layout-media-side">${mediaParts.join('\n')}</div></div>`, appliedLayout: 'Cards + Image' };
     }
   }
 
@@ -186,7 +462,7 @@ function applyAutoLayout(html: string): string {
     }
 
     if (gridParts.length >= 2) {
-      return `${topParts.join('\n')}\n<div class="layout-image-grid">${gridParts.join('\n')}</div>`;
+      return { html: `${topParts.join('\n')}\n<div class="layout-image-grid">${gridParts.join('\n')}</div>`, appliedLayout: 'Image Grid' };
     }
   }
 
@@ -205,11 +481,11 @@ function applyAutoLayout(html: string): string {
     }
 
     if (mediaParts.length === 1 && bodyParts.length > 0) {
-      return `<div class="layout-text-image"><div class="layout-body">${bodyParts.join('\n')}</div><div class="layout-media">${mediaParts.join('\n')}</div></div>`;
+      return { html: `<div class="layout-text-image"><div class="layout-body">${bodyParts.join('\n')}</div><div class="layout-media">${mediaParts.join('\n')}</div></div>`, appliedLayout: 'Text + Image' };
     }
   }
 
-  return html;
+  return { html };
 }
 
 /**
@@ -273,7 +549,7 @@ function renderSlideMarkdown(content: string): string {
   return html;
 }
 
-export function parsePresentation(markdown: string): ParsedPresentation {
+export function parsePresentation(markdown: string, layoutRules?: LayoutRuleInput[]): ParsedPresentation {
   const rawSlides = markdown.split(/\n---\n/);
 
   let lineOffset = 0;
@@ -287,12 +563,23 @@ export function parsePresentation(markdown: string): ParsedPresentation {
     let html = renderSlideMarkdown(content);
     html = transformCardLists(html);
     html = transformImageCaptions(html);
-    html = applyAutoLayout(html);
+
+    // Use rule engine if rules provided, otherwise fall back to hardcoded
+    let appliedLayout: string | undefined;
+    if (layoutRules && layoutRules.length > 0) {
+      const result = applyAutoLayoutWithRules(html, layoutRules);
+      html = result.html;
+      appliedLayout = result.appliedLayout;
+    } else {
+      const result = applyAutoLayout(html);
+      html = result.html;
+      appliedLayout = result.appliedLayout;
+    }
 
     // Advance line offset: raw content lines + 1 for the --- separator
     lineOffset += raw.split('\n').length + 1;
 
-    return { content, html, notes, lineOffset: slideLineOffset };
+    return { content, html, notes, lineOffset: slideLineOffset, appliedLayout };
   });
 
   return { slides };

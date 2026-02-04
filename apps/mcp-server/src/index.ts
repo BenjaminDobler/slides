@@ -329,6 +329,73 @@ server.tool(
   }
 );
 
+server.tool(
+  'list_layout_rules',
+  'List all layout rules. Layout rules define how slide content is automatically arranged (e.g., hero layout, text+image split, image grid). Rules are checked in priority order; the first matching rule is applied.',
+  {},
+  async () => {
+    const rules = await api('GET', '/api/layout-rules');
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(rules, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  'create_layout_rule',
+  'Create a custom layout rule. A rule has conditions (when to apply), a transform (how to rearrange HTML), and CSS (styling for the layout classes).',
+  {
+    name: z.string().describe('Unique rule name (slug format, e.g. "my-layout")'),
+    displayName: z.string().describe('Human-readable name'),
+    description: z.string().optional().describe('Description of what this rule does'),
+    priority: z.number().optional().describe('Priority (lower = checked first, default: 100)'),
+    conditions: z.string().describe('JSON string of LayoutConditions object. Fields: hasHeading (bool), imageCount ({eq/gte/lte/gt: number}), figureCount, h3Count, textParagraphCount, hasCards (bool), hasList (bool), hasCodeBlock (bool), hasBlockquote (bool). All optional, AND logic.'),
+    transform: z.string().describe('JSON string of LayoutTransform object. Type is one of: "wrap", "split-two", "split-top-bottom", "group-by-heading". Each type has specific options.'),
+    cssContent: z.string().describe('CSS rules for the layout classes used by the transform'),
+  },
+  async ({ name, displayName, description, priority, conditions, transform, cssContent }) => {
+    const rule = await api('POST', '/api/layout-rules', {
+      name,
+      displayName,
+      description,
+      priority: priority ?? 100,
+      conditions: JSON.parse(conditions),
+      transform: JSON.parse(transform),
+      cssContent,
+    });
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(rule, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  'delete_layout_rule',
+  'Delete a custom layout rule by ID. Default (built-in) rules cannot be deleted.',
+  { id: z.string().describe('Layout rule ID') },
+  async ({ id }) => {
+    await api('DELETE', `/api/layout-rules/${id}`);
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Layout rule ${id} deleted successfully.`,
+        },
+      ],
+    };
+  }
+);
+
 async function main() {
   if (!AUTH_TOKEN) {
     console.error(

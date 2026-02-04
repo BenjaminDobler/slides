@@ -8,9 +8,11 @@ import { SlideThumbnailsComponent } from './components/slide-thumbnails.componen
 import { ThemeSelectorComponent } from './components/theme-selector.component';
 import { AiAssistantPanelComponent } from './components/ai-assistant-panel.component';
 import { ResizeDividerComponent } from './components/resize-divider.component';
+import { LayoutRulesEditorComponent } from './components/layout-rules-editor.component';
 import { PresentationService } from '../../core/services/presentation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { ExportService } from '../../core/services/export.service';
+import { LayoutRuleService } from '../../core/services/layout-rule.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 
@@ -26,6 +28,7 @@ import type { ParsedSlide } from '@slides/markdown-parser';
     ThemeSelectorComponent,
     AiAssistantPanelComponent,
     ResizeDividerComponent,
+    LayoutRulesEditorComponent,
   ],
   templateUrl: './editor-page.component.html',
   styleUrl: './editor-page.component.scss',
@@ -36,6 +39,7 @@ export class EditorPageComponent implements OnInit {
   private presentationService = inject(PresentationService);
   private themeService = inject(ThemeService);
   private exportService = inject(ExportService);
+  private layoutRuleService = inject(LayoutRuleService);
 
   @ViewChild(MarkdownEditorComponent) editor!: MarkdownEditorComponent;
   @ViewChild(SlidePreviewComponent) slidePreview!: SlidePreviewComponent;
@@ -48,6 +52,7 @@ export class EditorPageComponent implements OnInit {
   currentSlideIndex = signal(0);
   currentSlideContent = signal('');
   showAi = signal(false);
+  showLayoutRules = signal(false);
   isDragging = signal(false);
   exporting = signal(false);
   exportProgress = signal('');
@@ -66,7 +71,10 @@ export class EditorPageComponent implements OnInit {
     this.editorWidth.set(Math.floor(available / 2));
     this.previewWidth.set(Math.floor(available / 2));
 
-    await this.themeService.loadThemes();
+    await Promise.all([
+      this.themeService.loadThemes(),
+      this.layoutRuleService.loadRules(),
+    ]);
 
     if (this.presentationId) {
       this.presentationService.get(this.presentationId).subscribe((p) => {
@@ -88,7 +96,7 @@ export class EditorPageComponent implements OnInit {
   }
 
   private updateSlides(markdown: string) {
-    const parsed = parsePresentation(markdown);
+    const parsed = parsePresentation(markdown, this.layoutRuleService.rules());
     this.slides.set(parsed.slides);
     this.updateCurrentSlideContent(this.currentSlideIndex());
   }
@@ -281,6 +289,10 @@ export class EditorPageComponent implements OnInit {
 
   present() {
     this.router.navigate(['/present', this.presentationId]);
+  }
+
+  onLayoutRulesChanged() {
+    this.updateSlides(this.content());
   }
 
   goBack() {

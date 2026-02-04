@@ -10,6 +10,7 @@ import themesRoutes from './routes/themes.routes';
 import aiRoutes from './routes/ai.routes';
 import aiConfigRoutes from './routes/ai-config.routes';
 import mediaRoutes from './routes/media.routes';
+import layoutRulesRoutes from './routes/layout-rules.routes';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/themes', themesRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/ai-config', aiConfigRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/layout-rules', layoutRulesRoutes);
 
 const port = config.port;
 const server = app.listen(port, () => {

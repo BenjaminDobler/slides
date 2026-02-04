@@ -28,6 +28,23 @@
   flex-shrink: 0;
 }
 
+.layout-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full, 9999px);
+  white-space: nowrap;
+  line-height: 1.4;
+
+  &.no-layout {
+    opacity: 0.5;
+  }
+}
+
 .slide-nav button {
   display: inline-flex;
   align-items: center;

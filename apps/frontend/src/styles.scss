@@ -258,6 +258,22 @@ html, body {
   display: block;
 }
 
+/* Auto-layout: Sections (multi-column h3 groups) */
+.slide-content .layout-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 2rem;
+  flex: 1;
+  min-height: 0;
+}
+.slide-content .layout-section-col h3 {
+  margin-top: 0;
+}
+.slide-content .layout-section-col ul,
+.slide-content .layout-section-col ol {
+  padding-left: 1.2em;
+}
+
 /* Figure / caption (all layouts) */
 .slide-content figure { margin: 0; }
 .slide-content figcaption {

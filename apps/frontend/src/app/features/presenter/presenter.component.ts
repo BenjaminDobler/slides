@@ -5,6 +5,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { PresentationService } from '../../core/services/presentation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { MermaidService } from '../../core/services/mermaid.service';
+import { LayoutRuleService } from '../../core/services/layout-rule.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 
@@ -24,6 +25,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private presentationService = inject(PresentationService);
   private themeService = inject(ThemeService);
   private mermaidService = inject(MermaidService);
+  private layoutRuleService = inject(LayoutRuleService);
 
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
 
@@ -55,8 +57,11 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     window.addEventListener('resize', this.onResize);
     const id = this.route.snapshot.paramMap.get('id') || '';
 
-    // Load themes first, then load presentation
-    this.themeService.loadThemes().then(() => {
+    // Load themes and layout rules first, then load presentation
+    Promise.all([
+      this.themeService.loadThemes(),
+      this.layoutRuleService.loadRules(),
+    ]).then(() => {
       this.presentationService.get(id).subscribe({
         next: (p) => {
           this.theme.set(p.theme);
@@ -66,7 +71,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
           if (themeData) {
             this.themeService.applyTheme(themeData);
           }
-          const parsed = parsePresentation(p.content);
+          const parsed = parsePresentation(p.content, this.layoutRuleService.rules());
           this.slides.set(parsed.slides);
           // Use setTimeout to ensure DOM has updated with new slide data
           setTimeout(() => this.applySlideContent(), 0);
