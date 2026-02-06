@@ -80,7 +80,6 @@ jobs:
           name: Slides-${{ matrix.name }}
           path: |
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
