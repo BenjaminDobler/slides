@@ -8,9 +8,15 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './core/services/auth.interceptor';
 
-// Detect if running in Tauri desktop app (check protocol for built apps)
-const isDesktopApp = typeof window !== 'undefined' &&
-  (!!window.__TAURI__ || window.location.protocol === 'tauri:');
+// Detect if running in Tauri desktop app
+// Check multiple indicators since __TAURI__ may not be available at module load time
+const isDesktopApp = typeof window !== 'undefined' && (
+  !!window.__TAURI__ ||
+  window.location.protocol === 'tauri:' ||
+  window.location.hostname === 'tauri.localhost' ||
+  // @ts-expect-error - Tauri internals injected before __TAURI__
+  !!window.__TAURI_INTERNALS__
+);
 
 export const appConfig: ApplicationConfig = {
   providers: [

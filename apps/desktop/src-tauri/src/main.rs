@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Arc;
+use tauri::Manager;
 use tokio::sync::RwLock;
 use tracing_subscriber;
 
@@ -28,9 +29,16 @@ fn main() {
         .expect("error while running tauri application");
 }
 
-async fn start_backend(_app_handle: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+async fn start_backend(app_handle: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // Get app data directory for database storage
+    let app_data_dir = app_handle.path().app_data_dir()?;
+    std::fs::create_dir_all(&app_data_dir)?;
+    let db_path = app_data_dir.join("slides.db");
+    let database_url = format!("sqlite:{}?mode=rwc", db_path.display());
+    tracing::info!("Using database at: {}", database_url);
+
     // Initialize database
-    let db = db::Database::new().await?;
+    let db = db::Database::new_with_url(&database_url).await?;
     db.migrate().await?;
 
     let state = Arc::new(RwLock::new(AppState { db }));

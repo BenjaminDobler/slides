@@ -1,4 +1,5 @@
-import { Component, inject, output, signal, Input } from '@angular/core';
+import { Component, DestroyRef, inject, output, signal, Input } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../../core/services/ai.service';
@@ -15,6 +16,7 @@ import type { AiProviderConfigDto } from '@slides/shared-types';
 export class AiAssistantPanelComponent {
   private aiService = inject(AiService);
   private themeService = inject(ThemeService);
+  private destroyRef = inject(DestroyRef);
 
   @Input() set currentSlideContentInput(value: string) {
     this._currentSlideContent.set(value || '');
@@ -56,10 +58,12 @@ export class AiAssistantPanelComponent {
   error = signal('');
 
   constructor() {
-    this.aiService.getConfigs().subscribe((c) => {
-      this.configs.set(c);
-      if (c.length > 0) this.selectedProvider = c[0].providerName;
-    });
+    this.aiService.getConfigs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((c) => {
+        this.configs.set(c);
+        if (c.length > 0) this.selectedProvider = c[0].providerName;
+      });
   }
 
   generate() {
@@ -67,10 +71,12 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.result.set('');
-    this.aiService.generate(this.prompt, this.selectedProvider).subscribe({
-      next: (res) => { this.result.set(res.content); this.loading.set(false); },
-      error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
-    });
+    this.aiService.generate(this.prompt, this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.result.set(res.content); this.loading.set(false); },
+        error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
+      });
   }
 
   outlineToSlides() {
@@ -78,10 +84,12 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.result.set('');
-    this.aiService.outlineToSlides(this.outlineText, this.selectedProvider).subscribe({
-      next: (res) => { this.result.set(res.content); this.loading.set(false); },
-      error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
-    });
+    this.aiService.outlineToSlides(this.outlineText, this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.result.set(res.content); this.loading.set(false); },
+        error: (err) => { this.error.set(err?.error?.error || 'Generation failed'); this.loading.set(false); },
+      });
   }
 
   applyResult() {
@@ -96,15 +104,17 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.enhanceResult.set('');
-    this.aiService.speakerNotes(this._currentSlideContent(), this.selectedProvider).subscribe({
-      next: (res) => {
-        this.enhanceResult.set(res.notes);
-        this.enhanceResultLabel.set('Speaker notes generated:');
-        this.enhanceType = 'notes';
-        this.loading.set(false);
-      },
-      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
-    });
+    this.aiService.speakerNotes(this._currentSlideContent(), this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.enhanceResult.set(res.notes);
+          this.enhanceResultLabel.set('Speaker notes generated:');
+          this.enhanceType = 'notes';
+          this.loading.set(false);
+        },
+        error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+      });
   }
 
   generateDiagram() {
@@ -112,15 +122,17 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.enhanceResult.set('');
-    this.aiService.generateDiagram(this.diagramPrompt, this.selectedProvider).subscribe({
-      next: (res) => {
-        this.enhanceResult.set(res.mermaid);
-        this.enhanceResultLabel.set('Mermaid diagram generated:');
-        this.enhanceType = 'diagram';
-        this.loading.set(false);
-      },
-      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
-    });
+    this.aiService.generateDiagram(this.diagramPrompt, this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.enhanceResult.set(res.mermaid);
+          this.enhanceResultLabel.set('Mermaid diagram generated:');
+          this.enhanceType = 'diagram';
+          this.loading.set(false);
+        },
+        error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+      });
   }
 
   rewriteSlide() {
@@ -128,15 +140,17 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.enhanceResult.set('');
-    this.aiService.rewrite(this._currentSlideContent(), this.selectedProvider, this.rewriteAudience).subscribe({
-      next: (res) => {
-        this.enhanceResult.set(res.content);
-        this.enhanceResultLabel.set(`Rewritten for ${this.rewriteAudience} audience:`);
-        this.enhanceType = 'rewrite';
-        this.loading.set(false);
-      },
-      error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
-    });
+    this.aiService.rewrite(this._currentSlideContent(), this.selectedProvider, this.rewriteAudience)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.enhanceResult.set(res.content);
+          this.enhanceResultLabel.set(`Rewritten for ${this.rewriteAudience} audience:`);
+          this.enhanceType = 'rewrite';
+          this.loading.set(false);
+        },
+        error: (err) => { this.error.set(err?.error?.error || 'Failed'); this.loading.set(false); },
+      });
   }
 
   async visualReview() {
@@ -146,15 +160,17 @@ export class AiAssistantPanelComponent {
     this.enhanceResult.set('');
     try {
       const screenshot = await this.screenshotProvider();
-      this.aiService.visualReview(this._currentSlideContent(), screenshot, this.selectedProvider).subscribe({
-        next: (res) => {
-          this.enhanceResult.set(res.review);
-          this.enhanceResultLabel.set('Visual review:');
-          this.enhanceType = 'review';
-          this.loading.set(false);
-        },
-        error: (err) => { this.error.set(err?.error?.error || 'Review failed'); this.loading.set(false); },
-      });
+      this.aiService.visualReview(this._currentSlideContent(), screenshot, this.selectedProvider)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            this.enhanceResult.set(res.review);
+            this.enhanceResultLabel.set('Visual review:');
+            this.enhanceType = 'review';
+            this.loading.set(false);
+          },
+          error: (err) => { this.error.set(err?.error?.error || 'Review failed'); this.loading.set(false); },
+        });
     } catch {
       this.error.set('Failed to capture screenshot');
       this.loading.set(false);
@@ -168,15 +184,17 @@ export class AiAssistantPanelComponent {
     this.enhanceResult.set('');
     try {
       const screenshot = await this.screenshotProvider();
-      this.aiService.visualImprove(this._currentSlideContent(), screenshot, this.selectedProvider, this.visualInstruction || undefined).subscribe({
-        next: (res) => {
-          this.enhanceResult.set(res.content);
-          this.enhanceResultLabel.set('Improved slide content:');
-          this.enhanceType = 'rewrite';
-          this.loading.set(false);
-        },
-        error: (err) => { this.error.set(err?.error?.error || 'Improve failed'); this.loading.set(false); },
-      });
+      this.aiService.visualImprove(this._currentSlideContent(), screenshot, this.selectedProvider, this.visualInstruction || undefined)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (res) => {
+            this.enhanceResult.set(res.content);
+            this.enhanceResultLabel.set('Improved slide content:');
+            this.enhanceType = 'rewrite';
+            this.loading.set(false);
+          },
+          error: (err) => { this.error.set(err?.error?.error || 'Improve failed'); this.loading.set(false); },
+        });
     } catch {
       this.error.set('Failed to capture screenshot');
       this.loading.set(false);
@@ -203,10 +221,12 @@ export class AiAssistantPanelComponent {
     this.loading.set(true);
     this.error.set('');
     this.styleResult.set(null);
-    this.aiService.generateTheme(this.stylePrompt, this.selectedProvider).subscribe({
-      next: (res) => { this.styleResult.set(res); this.loading.set(false); },
-      error: (err) => { this.error.set(err?.error?.error || 'Theme generation failed'); this.loading.set(false); },
-    });
+    this.aiService.generateTheme(this.stylePrompt, this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => { this.styleResult.set(res); this.loading.set(false); },
+        error: (err) => { this.error.set(err?.error?.error || 'Theme generation failed'); this.loading.set(false); },
+      });
   }
 
   saveAndApplyStyle() {
@@ -216,15 +236,17 @@ export class AiAssistantPanelComponent {
       name: style.name,
       displayName: style.displayName,
       cssContent: style.cssContent,
-    }).subscribe({
-      next: (saved) => {
-        this.themeService.applyTheme(saved);
-        this.themeGenerated.emit(saved.name);
-        this.styleResult.set(null);
-      },
-      error: (err) => {
-        this.error.set(err?.error?.error || 'Failed to save theme');
-      },
-    });
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saved) => {
+          this.themeService.applyTheme(saved);
+          this.themeGenerated.emit(saved.name);
+          this.styleResult.set(null);
+        },
+        error: (err) => {
+          this.error.set(err?.error?.error || 'Failed to save theme');
+        },
+      });
   }
 }

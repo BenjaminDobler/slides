@@ -1,4 +1,5 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -14,6 +15,7 @@ import type { ThemeDto } from '@slides/shared-types';
 })
 export class ThemeSelectorComponent {
   themeService = inject(ThemeService);
+  private destroyRef = inject(DestroyRef);
 
   themeChanged = output<string>();
   showEditor = signal(false);
@@ -40,13 +42,15 @@ export class ThemeSelectorComponent {
   deleteCurrent() {
     const current = this.themeService.currentTheme();
     if (!current || current.isDefault) return;
-    this.themeService.deleteTheme(current.id).subscribe(() => {
-      const themes = this.themeService.themes();
-      if (themes.length > 0) {
-        this.themeService.applyTheme(themes[0]);
-        this.themeChanged.emit(themes[0].name);
-      }
-    });
+    this.themeService.deleteTheme(current.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const themes = this.themeService.themes();
+        if (themes.length > 0) {
+          this.themeService.applyTheme(themes[0]);
+          this.themeChanged.emit(themes[0].name);
+        }
+      });
   }
 
   closeEditor() {

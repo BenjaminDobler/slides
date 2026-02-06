@@ -17,8 +17,14 @@ export class AuthService {
   /** True if running in Tauri desktop app - checked dynamically */
   get isDesktopApp(): boolean {
     if (typeof window === 'undefined') return false;
-    // Check for Tauri global object or tauri:// protocol
-    return !!window.__TAURI__ || window.location.protocol === 'tauri:';
+    // Check multiple indicators for Tauri detection
+    return (
+      !!window.__TAURI__ ||
+      window.location.protocol === 'tauri:' ||
+      window.location.hostname === 'tauri.localhost' ||
+      // @ts-expect-error - Tauri internals injected before __TAURI__
+      !!window.__TAURI_INTERNALS__
+    );
   }
 
   isLoggedIn = computed(() => this.isDesktopApp || !!this.tokenSignal());

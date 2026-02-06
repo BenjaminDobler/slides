@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, inject, signal, computed, ViewChild, ElementRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -26,6 +27,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private themeService = inject(ThemeService);
   private mermaidService = inject(MermaidService);
   private layoutRuleService = inject(LayoutRuleService);
+  private destroyRef = inject(DestroyRef);
 
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
 
@@ -62,7 +64,9 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       this.themeService.loadThemes(),
       this.layoutRuleService.loadRules(),
     ]).then(() => {
-      this.presentationService.get(id).subscribe({
+      this.presentationService.get(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
         next: (p) => {
           this.theme.set(p.theme);
           this.mermaidService.initializeTheme(p.theme);

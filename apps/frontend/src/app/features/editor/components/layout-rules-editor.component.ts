@@ -1,4 +1,5 @@
-import { Component, inject, output, signal, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, output, signal, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LayoutRuleService } from '../../../core/services/layout-rule.service';
@@ -24,6 +25,7 @@ type TransformType = 'wrap' | 'split-two' | 'split-top-bottom' | 'group-by-headi
 })
 export class LayoutRulesEditorComponent implements OnInit {
   private layoutRuleService = inject(LayoutRuleService);
+  private destroyRef = inject(DestroyRef);
 
   closed = output<void>();
   rulesChanged = output<void>();
@@ -94,24 +96,28 @@ export class LayoutRulesEditorComponent implements OnInit {
 
   toggleEnabled(rule: LayoutRuleDto) {
     if (rule.isDefault) return;
-    this.layoutRuleService.updateRule(rule.id, { enabled: !rule.enabled }).subscribe({
-      next: () => {
-        this.refreshRules();
-        this.rulesChanged.emit();
-      },
-      error: (err) => this.error.set(err?.error?.error || 'Failed to update rule'),
-    });
+    this.layoutRuleService.updateRule(rule.id, { enabled: !rule.enabled })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.refreshRules();
+          this.rulesChanged.emit();
+        },
+        error: (err) => this.error.set(err?.error?.error || 'Failed to update rule'),
+      });
   }
 
   deleteRule(rule: LayoutRuleDto) {
     if (rule.isDefault) return;
-    this.layoutRuleService.deleteRule(rule.id).subscribe({
-      next: () => {
-        this.refreshRules();
-        this.rulesChanged.emit();
-      },
-      error: (err) => this.error.set(err?.error?.error || 'Failed to delete rule'),
-    });
+    this.layoutRuleService.deleteRule(rule.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.refreshRules();
+          this.rulesChanged.emit();
+        },
+        error: (err) => this.error.set(err?.error?.error || 'Failed to delete rule'),
+      });
   }
 
   save() {
@@ -132,18 +138,20 @@ export class LayoutRulesEditorComponent implements OnInit {
         conditions,
         transform,
         cssContent: this.cssContent,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.refreshRules();
-          this.rulesChanged.emit();
-          this.view.set('list');
-        },
-        error: (err) => {
-          this.saving.set(false);
-          this.error.set(err?.error?.error || 'Failed to update rule');
-        },
-      });
+      })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.refreshRules();
+            this.rulesChanged.emit();
+            this.view.set('list');
+          },
+          error: (err) => {
+            this.saving.set(false);
+            this.error.set(err?.error?.error || 'Failed to update rule');
+          },
+        });
     } else {
       this.layoutRuleService.createRule({
         name: this.name,
@@ -154,18 +162,20 @@ export class LayoutRulesEditorComponent implements OnInit {
         conditions,
         transform,
         cssContent: this.cssContent,
-      }).subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.refreshRules();
-          this.rulesChanged.emit();
-          this.view.set('list');
-        },
-        error: (err) => {
-          this.saving.set(false);
-          this.error.set(err?.error?.error || 'Failed to create rule');
-        },
-      });
+      })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.refreshRules();
+            this.rulesChanged.emit();
+            this.view.set('list');
+          },
+          error: (err) => {
+            this.saving.set(false);
+            this.error.set(err?.error?.error || 'Failed to create rule');
+          },
+        });
     }
   }
 

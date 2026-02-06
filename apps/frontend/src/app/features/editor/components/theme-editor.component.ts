@@ -1,4 +1,5 @@
-import { Component, inject, output, signal, Input } from '@angular/core';
+import { Component, DestroyRef, inject, output, signal, Input } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -17,6 +18,7 @@ export class ThemeEditorComponent {
   private themeService = inject(ThemeService);
   private aiService = inject(AiService);
   private sanitizer = inject(DomSanitizer);
+  private destroyRef = inject(DestroyRef);
 
   @Input() set editTheme(value: ThemeDto | null) {
     this.editingTheme.set(value);
@@ -55,10 +57,12 @@ export class ThemeEditorComponent {
   private previewStyleEl: HTMLStyleElement | null = null;
 
   constructor() {
-    this.aiService.getConfigs().subscribe((c) => {
-      this.configs.set(c);
-      if (c.length > 0) this.selectedProvider = c[0].providerName;
-    });
+    this.aiService.getConfigs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((c) => {
+        this.configs.set(c);
+        if (c.length > 0) this.selectedProvider = c[0].providerName;
+      });
     this.buildCss();
   }
 
@@ -114,21 +118,23 @@ export class ThemeEditorComponent {
     if (!this.selectedProvider || !this.aiDescription) return;
     this.aiLoading.set(true);
     this.aiError.set('');
-    this.aiService.generateTheme(this.aiDescription, this.selectedProvider).subscribe({
-      next: (res) => {
-        this.themeName = res.name;
-        this.displayName = res.displayName;
-        this.cssContent = res.cssContent;
-        this.extractColorsFromCss(res.cssContent);
-        this.injectPreviewCss();
-        this.tab.set('manual');
-        this.aiLoading.set(false);
-      },
-      error: (err) => {
-        this.aiError.set(err?.error?.error || 'Theme generation failed');
-        this.aiLoading.set(false);
-      },
-    });
+    this.aiService.generateTheme(this.aiDescription, this.selectedProvider)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.themeName = res.name;
+          this.displayName = res.displayName;
+          this.cssContent = res.cssContent;
+          this.extractColorsFromCss(res.cssContent);
+          this.injectPreviewCss();
+          this.tab.set('manual');
+          this.aiLoading.set(false);
+        },
+        error: (err) => {
+          this.aiError.set(err?.error?.error || 'Theme generation failed');
+          this.aiLoading.set(false);
+        },
+      });
   }
 
   save() {
@@ -138,19 +144,23 @@ export class ThemeEditorComponent {
       this.themeService.updateTheme(editing.id, {
         displayName: this.displayName,
         cssContent: this.cssContent,
-      }).subscribe(() => {
-        this.cleanup();
-        this.saved.emit();
-      });
+      })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          this.cleanup();
+          this.saved.emit();
+        });
     } else {
       this.themeService.createTheme({
         name: this.themeName,
         displayName: this.displayName,
         cssContent: this.cssContent,
-      }).subscribe(() => {
-        this.cleanup();
-        this.saved.emit();
-      });
+      })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          this.cleanup();
+          this.saved.emit();
+        });
     }
   }
 

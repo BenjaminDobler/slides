@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MediaService } from '../../../core/services/media.service';
 import type { MediaDto } from '@slides/shared-types';
@@ -12,6 +13,7 @@ import type { MediaDto } from '@slides/shared-types';
 })
 export class MediaLibraryComponent implements OnInit {
   private mediaService = inject(MediaService);
+  private destroyRef = inject(DestroyRef);
 
   mediaInsert = output<string>();
 
@@ -24,10 +26,12 @@ export class MediaLibraryComponent implements OnInit {
   }
 
   private loadMedia() {
-    this.mediaService.list().subscribe({
-      next: (items) => this.items.set(items),
-      error: (err) => console.error('Failed to load media:', err),
-    });
+    this.mediaService.list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => this.items.set(items),
+        error: (err) => console.error('Failed to load media:', err),
+      });
   }
 
   onDragOver(event: DragEvent) {
@@ -52,23 +56,25 @@ export class MediaLibraryComponent implements OnInit {
     this.uploading.set(true);
     let remaining = files.length;
     for (let i = 0; i < files.length; i++) {
-      this.mediaService.upload(files[i]).subscribe({
-        next: () => {
-          remaining--;
-          if (remaining === 0) {
-            this.uploading.set(false);
-            this.loadMedia();
-          }
-        },
-        error: (err) => {
-          console.error('Upload failed:', err);
-          remaining--;
-          if (remaining === 0) {
-            this.uploading.set(false);
-            this.loadMedia();
-          }
-        },
-      });
+      this.mediaService.upload(files[i])
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            remaining--;
+            if (remaining === 0) {
+              this.uploading.set(false);
+              this.loadMedia();
+            }
+          },
+          error: (err) => {
+            console.error('Upload failed:', err);
+            remaining--;
+            if (remaining === 0) {
+              this.uploading.set(false);
+              this.loadMedia();
+            }
+          },
+        });
     }
   }
 
@@ -94,6 +100,8 @@ export class MediaLibraryComponent implements OnInit {
 
   deleteMedia(event: Event, item: MediaDto) {
     event.stopPropagation();
-    this.mediaService.delete(item.id).subscribe(() => this.loadMedia());
+    this.mediaService.delete(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadMedia());
   }
 }

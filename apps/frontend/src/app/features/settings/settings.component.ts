@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,6 +18,7 @@ export class SettingsComponent implements OnInit {
   private aiService = inject(AiService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   configs = signal<AiProviderConfigDto[]>([]);
   tokenCopied = signal(false);
@@ -48,7 +50,9 @@ export class SettingsComponent implements OnInit {
   }
 
   private loadConfigs() {
-    this.aiService.getConfigs().subscribe((c) => this.configs.set(c));
+    this.aiService.getConfigs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((c) => this.configs.set(c));
   }
 
   addConfig() {
@@ -61,6 +65,7 @@ export class SettingsComponent implements OnInit {
         model: this.newModel || undefined,
         baseUrl: this.newBaseUrl || undefined,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.newApiKey = '';
         this.newModel = '';
@@ -70,7 +75,9 @@ export class SettingsComponent implements OnInit {
   }
 
   removeConfig(id: string) {
-    this.aiService.deleteConfig(id).subscribe(() => this.loadConfigs());
+    this.aiService.deleteConfig(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadConfigs());
   }
 
   copyToken() {

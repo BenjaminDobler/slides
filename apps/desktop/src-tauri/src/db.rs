@@ -13,10 +13,13 @@ impl Database {
     pub async fn new() -> AppResult<Self> {
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "sqlite:slides.db?mode=rwc".to_string());
+        Self::new_with_url(&database_url).await
+    }
 
+    pub async fn new_with_url(database_url: &str) -> AppResult<Self> {
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
-            .connect(&database_url)
+            .connect(database_url)
             .await?;
 
         Ok(Self { pool })

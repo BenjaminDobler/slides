@@ -1,4 +1,5 @@
-import { Component, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -40,6 +41,7 @@ export class EditorPageComponent implements OnInit {
   private themeService = inject(ThemeService);
   private exportService = inject(ExportService);
   private layoutRuleService = inject(LayoutRuleService);
+  private destroyRef = inject(DestroyRef);
 
   @ViewChild(MarkdownEditorComponent) editor!: MarkdownEditorComponent;
   @ViewChild(SlidePreviewComponent) slidePreview!: SlidePreviewComponent;
@@ -77,15 +79,17 @@ export class EditorPageComponent implements OnInit {
     ]);
 
     if (this.presentationId) {
-      this.presentationService.get(this.presentationId).subscribe((p) => {
-        this.title = p.title;
-        this.content.set(p.content);
-        this.currentTheme.set(p.theme);
-        // Apply the saved theme's CSS
-        const theme = this.themeService.themes().find((t) => t.name === p.theme);
-        if (theme) this.themeService.applyTheme(theme);
-        this.updateSlides(p.content);
-      });
+      this.presentationService.get(this.presentationId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((p) => {
+          this.title = p.title;
+          this.content.set(p.content);
+          this.currentTheme.set(p.theme);
+          // Apply the saved theme's CSS
+          const theme = this.themeService.themes().find((t) => t.name === p.theme);
+          if (theme) this.themeService.applyTheme(theme);
+          this.updateSlides(p.content);
+        });
     }
   }
 
@@ -224,6 +228,7 @@ export class EditorPageComponent implements OnInit {
       if (this.presentationId) {
         this.presentationService
           .update(this.presentationId, { content: this.content(), theme: this.currentTheme() })
+          .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe();
       }
     }, 2000);
@@ -231,7 +236,9 @@ export class EditorPageComponent implements OnInit {
 
   saveTitle() {
     if (this.presentationId) {
-      this.presentationService.update(this.presentationId, { title: this.title }).subscribe();
+      this.presentationService.update(this.presentationId, { title: this.title })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe();
     }
   }
 

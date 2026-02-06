@@ -37,7 +37,6 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
 
   private editor: any;
   private _initialContent = '';
-  private debounceTimer: any;
 
   ngAfterViewInit() {
     this.loadMonaco();
@@ -90,10 +89,7 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
     });
 
     this.editor.onDidChangeModelContent(() => {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => {
-        this.contentChange.emit(this.editor.getValue());
-      }, 300);
+      this.contentChange.emit(this.editor.getValue());
     });
 
     this.editor.onDidChangeCursorPosition((e: any) => {
@@ -362,7 +358,6 @@ export class MarkdownEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    clearTimeout(this.debounceTimer);
     this.editor?.dispose();
   }
 }
