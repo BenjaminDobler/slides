@@ -14,18 +14,24 @@ export class AuthService {
   private tokenSignal = signal<string | null>(localStorage.getItem('token'));
   private userSignal = signal<{ id: string; email: string; name?: string } | null>(null);
 
-  /** True if running in Tauri desktop app */
-  readonly isDesktopApp = typeof window !== 'undefined' && !!window.__TAURI__;
+  /** True if running in Tauri desktop app - checked dynamically */
+  get isDesktopApp(): boolean {
+    if (typeof window === 'undefined') return false;
+    // Check for Tauri global object or tauri:// protocol
+    return !!window.__TAURI__ || window.location.protocol === 'tauri:';
+  }
 
   isLoggedIn = computed(() => this.isDesktopApp || !!this.tokenSignal());
   user = this.userSignal.asReadonly();
   token = this.tokenSignal.asReadonly();
 
   constructor(private http: HttpClient) {
-    // Auto-set user for desktop mode
-    if (this.isDesktopApp) {
-      this.userSignal.set({ id: 'local', email: 'local@desktop', name: 'Local User' });
-    }
+    // Auto-set user for desktop mode (check after a tick to ensure __TAURI__ is set)
+    setTimeout(() => {
+      if (this.isDesktopApp) {
+        this.userSignal.set({ id: 'local', email: 'local@desktop', name: 'Local User' });
+      }
+    }, 0);
   }
 
   async login(dto: LoginDto): Promise<void> {

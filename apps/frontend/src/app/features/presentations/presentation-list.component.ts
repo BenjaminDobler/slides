@@ -20,13 +20,19 @@ export class PresentationListComponent implements OnInit {
   presentations = signal<PresentationDto[]>([]);
 
   ngOnInit() {
-    this.presentationService.list().subscribe((p) => this.presentations.set(p));
+    this.presentationService.list().subscribe({
+      next: (p) => this.presentations.set(p),
+      error: (err) => console.error('Failed to load presentations:', err),
+    });
   }
 
   createNew() {
     this.presentationService
       .create({ title: 'Untitled Presentation', content: '# Welcome\n\nYour first slide\n\n---\n\n# Slide 2\n\nAdd content here' })
-      .subscribe((p) => this.router.navigate(['/editor', p.id]));
+      .subscribe({
+        next: (p) => this.router.navigate(['/editor', p.id]),
+        error: (err) => console.error('Failed to create presentation:', err),
+      });
   }
 
   open(id: string) {
