@@ -24,6 +24,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "@tauri-apps/api": "^2.10.1",
     "@types/multer": "^2.0.0",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",

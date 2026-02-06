@@ -25,6 +25,22 @@ export class SettingsComponent implements OnInit {
   newModel = '';
   backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3332';
   isDesktopApp = this.authService.isDesktopApp;
+  appVersion = signal<string | null>(null);
+
+  constructor() {
+    this.loadAppVersion();
+  }
+
+  private async loadAppVersion() {
+    if (this.isDesktopApp && window.__TAURI__) {
+      try {
+        const { getVersion } = await import('@tauri-apps/api/app');
+        this.appVersion.set(await getVersion());
+      } catch {
+        // Fallback if Tauri API not available
+      }
+    }
+  }
 
   ngOnInit() {
     this.loadConfigs();

@@ -1,5 +1,7 @@
 .container { max-width: 600px; margin: 0 auto; padding: 2rem; color: #f8f9fa; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.header-title { display: flex; align-items: baseline; gap: 0.75rem; }
+.app-version { font-size: 0.85rem; color: #6b7280; font-weight: normal; }
 .btn-back { padding: 0.4rem 0.8rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; background: transparent; color: #f8f9fa; cursor: pointer; transition: background 0.15s; }
 .btn-back:hover { background: #23262f; }
 section { background: #111318; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.08); }

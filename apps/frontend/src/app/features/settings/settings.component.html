@@ -1,6 +1,11 @@
 <div class="container">
   <div class="header">
-    <h1>Settings</h1>
+    <div class="header-title">
+      <h1>Settings</h1>
+      @if (appVersion()) {
+        <span class="app-version">v{{ appVersion() }}</span>
+      }
+    </div>
     <button class="btn-back" (click)="goBack()">&larr; Back</button>
   </div>
 
