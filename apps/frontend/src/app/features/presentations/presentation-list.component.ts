@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { PresentationService } from '../../core/services/presentation.service';
@@ -16,19 +17,23 @@ export class PresentationListComponent implements OnInit {
   private presentationService = inject(PresentationService);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   presentations = signal<PresentationDto[]>([]);
 
   ngOnInit() {
-    this.presentationService.list().subscribe({
-      next: (p) => this.presentations.set(p),
-      error: (err) => console.error('Failed to load presentations:', err),
-    });
+    this.presentationService.list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (p) => this.presentations.set(p),
+        error: (err) => console.error('Failed to load presentations:', err),
+      });
   }
 
   createNew() {
     this.presentationService
       .create({ title: 'Untitled Presentation', content: '# Welcome\n\nYour first slide\n\n---\n\n# Slide 2\n\nAdd content here' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (p) => this.router.navigate(['/editor', p.id]),
         error: (err) => console.error('Failed to create presentation:', err),
@@ -41,9 +46,11 @@ export class PresentationListComponent implements OnInit {
 
   remove(id: string, event: Event) {
     event.stopPropagation();
-    this.presentationService.delete(id).subscribe(() => {
-      this.presentations.update((list) => list.filter((p) => p.id !== id));
-    });
+    this.presentationService.delete(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.presentations.update((list) => list.filter((p) => p.id !== id));
+      });
   }
 
   openSettings() {
