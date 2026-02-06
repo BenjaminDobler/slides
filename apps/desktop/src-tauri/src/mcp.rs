@@ -69,12 +69,12 @@ async fn sse_handler(
         },
         McpTool {
             name: "create_presentation".to_string(),
-            description: "Create a new presentation".to_string(),
+            description: "Create a new presentation. Content is Markdown with slides separated by '---'. Supports: headings, lists, code blocks, mermaid diagrams, <!-- columns -->/<!-- split --> for two-column layouts, and **Title:** description lists for card grids. IMPORTANT: Card grids should have MAXIMUM 3-4 items per slide - more will be too narrow and unreadable. Split content across multiple slides if needed.".to_string(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
                     "title": { "type": "string", "description": "Presentation title" },
-                    "content": { "type": "string", "description": "Markdown content" },
+                    "content": { "type": "string", "description": "Markdown content with slides separated by ---. Card grids (bullet lists with **Title:** format) should have MAX 3-4 items per slide." },
                     "theme": { "type": "string", "description": "Theme name" }
                 },
                 "required": ["title"]

@@ -88,9 +88,12 @@ Special layout directives:
 
 - Card grid: create a bullet list where every item starts with **Title:** description.
   These are automatically rendered as styled card boxes.
+  IMPORTANT: Use MAXIMUM 3-4 cards per slide. More cards will be too narrow and unreadable.
+  If you have more items, split them across multiple slides.
   Example:
     - **Feature A:** Description of feature A
     - **Feature B:** Description of feature B
+    - **Feature C:** Description of feature C
 
 - Speaker notes: wrap notes in <!-- notes --> and <!-- /notes --> directives.
   These are only visible in presenter view, not on the slide itself.
@@ -98,6 +101,12 @@ Special layout directives:
     <!-- notes -->
     Remember to mention the demo here.
     <!-- /notes -->
+
+Best practices:
+- Keep slides focused: one main idea per slide
+- Card grids: maximum 3-4 cards per slide (more will be too narrow)
+- Use multiple slides instead of cramming too much content
+- Lists: 4-6 bullet points maximum per slide
 `.trim();
 
 const server = new McpServer({

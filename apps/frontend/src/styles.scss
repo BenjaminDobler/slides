@@ -174,12 +174,21 @@ html, body {
 
 /* Slide card grid — generated from lists where every item is **Title:** desc */
 .slide-card-grid {
-  display: flex;
+  display: grid;
+  /* Max 4 columns, responsive down to 1 column */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* Hard limit: never more than 4 columns */
+  max-width: 100%;
   gap: 1rem;
   margin: 1rem 0;
 }
+/* Enforce max 4 columns even if cards are narrow */
+@supports (grid-template-columns: repeat(4, 1fr)) {
+  .slide-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(max(180px, calc((100% - 3rem) / 4)), 1fr));
+  }
+}
 .slide-card {
-  flex: 1;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
