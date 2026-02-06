@@ -2,14 +2,20 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 
 export class AnthropicProvider implements AIProvider {
   private apiKey: string;
+  private baseUrl?: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: this.apiKey });
+    const clientOptions: { apiKey: string; baseURL?: string } = { apiKey: this.apiKey };
+    if (this.baseUrl) {
+      clientOptions.baseURL = this.baseUrl;
+    }
+    const client = new Anthropic(clientOptions);
 
     const userContent: any[] = [];
     if (options?.imageBase64) {

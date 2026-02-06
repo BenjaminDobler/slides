@@ -72,6 +72,18 @@ impl Database {
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS ai_provider_configs (
+                id TEXT PRIMARY KEY,
+                provider_name TEXT NOT NULL,
+                api_key_encrypted TEXT NOT NULL,
+                model TEXT,
+                base_url TEXT,
+                user_id TEXT NOT NULL DEFAULT 'local',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, provider_name)
+            );
             "#,
         )
         .execute(&self.pool)
@@ -280,5 +292,91 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
         Ok(rules)
+    }
+
+    // AI Provider Configs
+    pub async fn list_ai_provider_configs(&self) -> AppResult<Vec<AiProviderConfig>> {
+        let configs = sqlx::query_as::<_, AiProviderConfig>(
+            "SELECT id, provider_name, api_key_encrypted, model, base_url, user_id, created_at, updated_at FROM ai_provider_configs WHERE user_id = 'local' ORDER BY provider_name"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(configs)
+    }
+
+    pub async fn get_ai_provider_config(&self, provider_name: &str) -> AppResult<Option<AiProviderConfig>> {
+        let config = sqlx::query_as::<_, AiProviderConfig>(
+            "SELECT id, provider_name, api_key_encrypted, model, base_url, user_id, created_at, updated_at FROM ai_provider_configs WHERE user_id = 'local' AND provider_name = ?"
+        )
+        .bind(provider_name)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(config)
+    }
+
+    pub async fn upsert_ai_provider_config(&self, data: CreateAiProviderConfig, api_key_encrypted: String) -> AppResult<AiProviderConfig> {
+        let now = Utc::now();
+
+        // Check if exists
+        let existing = self.get_ai_provider_config(&data.provider_name).await?;
+
+        if let Some(existing) = existing {
+            // Update
+            sqlx::query(
+                "UPDATE ai_provider_configs SET api_key_encrypted = ?, model = ?, base_url = ?, updated_at = ? WHERE id = ?"
+            )
+            .bind(&api_key_encrypted)
+            .bind(&data.model)
+            .bind(&data.base_url)
+            .bind(now)
+            .bind(&existing.id)
+            .execute(&self.pool)
+            .await?;
+
+            Ok(AiProviderConfig {
+                id: existing.id,
+                provider_name: data.provider_name,
+                api_key_encrypted,
+                model: data.model,
+                base_url: data.base_url,
+                user_id: "local".to_string(),
+                created_at: existing.created_at,
+                updated_at: now,
+            })
+        } else {
+            // Insert
+            let id = Uuid::new_v4().to_string();
+            sqlx::query(
+                "INSERT INTO ai_provider_configs (id, provider_name, api_key_encrypted, model, base_url, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'local', ?, ?)"
+            )
+            .bind(&id)
+            .bind(&data.provider_name)
+            .bind(&api_key_encrypted)
+            .bind(&data.model)
+            .bind(&data.base_url)
+            .bind(now)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+
+            Ok(AiProviderConfig {
+                id,
+                provider_name: data.provider_name,
+                api_key_encrypted,
+                model: data.model,
+                base_url: data.base_url,
+                user_id: "local".to_string(),
+                created_at: now,
+                updated_at: now,
+            })
+        }
+    }
+
+    pub async fn delete_ai_provider_config(&self, id: &str) -> AppResult<()> {
+        sqlx::query("DELETE FROM ai_provider_configs WHERE id = ? AND user_id = 'local'")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 }

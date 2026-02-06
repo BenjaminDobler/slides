@@ -23,6 +23,7 @@ export class SettingsComponent implements OnInit {
   newProvider = 'openai';
   newApiKey = '';
   newModel = '';
+  newBaseUrl = '';
   backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3332';
   isDesktopApp = this.authService.isDesktopApp;
   appVersion = signal<string | null>(null);
@@ -51,12 +52,19 @@ export class SettingsComponent implements OnInit {
   }
 
   addConfig() {
-    if (!this.newApiKey) return;
+    // Validate: need either API key or base URL
+    if (!this.newApiKey && !this.newBaseUrl) return;
     this.aiService
-      .saveConfig({ providerName: this.newProvider, apiKey: this.newApiKey, model: this.newModel || undefined })
+      .saveConfig({
+        providerName: this.newProvider,
+        apiKey: this.newApiKey || undefined,
+        model: this.newModel || undefined,
+        baseUrl: this.newBaseUrl || undefined,
+      })
       .subscribe(() => {
         this.newApiKey = '';
         this.newModel = '';
+        this.newBaseUrl = '';
         this.loadConfigs();
       });
   }

@@ -2,15 +2,21 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 
 export class OpenAIProvider implements AIProvider {
   private apiKey: string;
+  private baseUrl?: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
     // Dynamic import to avoid requiring the package if not used
     const { default: OpenAI } = await import('openai');
-    const client = new OpenAI({ apiKey: this.apiKey });
+    const clientOptions: { apiKey: string; baseURL?: string } = { apiKey: this.apiKey };
+    if (this.baseUrl) {
+      clientOptions.baseURL = this.baseUrl;
+    }
+    const client = new OpenAI(clientOptions);
 
     const userContent: any[] = [{ type: 'text', text: prompt }];
     if (options?.imageBase64) {

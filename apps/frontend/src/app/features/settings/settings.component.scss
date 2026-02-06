@@ -8,12 +8,16 @@ section { background: #111318; padding: 1.5rem; border-radius: 10px; margin-bott
 h2 { margin: 0 0 1rem; }
 h3 { margin: 1rem 0 0.5rem; }
 .provider-card { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #1c1f26; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.08); }
+.provider-info { display: flex; flex-direction: column; gap: 0.25rem; }
+.provider-name { font-weight: 500; }
+.provider-detail { font-size: 0.8rem; color: #6b7280; }
 .btn-delete { background: transparent; border: none; color: #ef4444; cursor: pointer; }
 .add-provider { margin-top: 1rem; }
 .add-provider select, .add-provider input { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); background: #1c1f26; color: #f8f9fa; box-sizing: border-box; transition: border-color 0.15s; }
 .add-provider select:focus, .add-provider input:focus { outline: none; border-color: #3b82f6; }
-.add-provider button { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer; transition: background 0.15s; }
+.add-provider button { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
 .add-provider button:hover { background: #2563eb; }
+.add-provider button:disabled { opacity: 0.5; cursor: not-allowed; }
 .mcp-desc { color: #8b8d98; font-size: 0.85rem; margin: 0 0 0.75rem; }
 .token-row { display: flex; gap: 0.5rem; align-items: center; }
 .token-display { flex: 1; padding: 0.5rem; background: #1c1f26; border-radius: 6px; font-size: 0.85rem; color: #8b8d98; border: 1px solid rgba(255,255,255,0.08); }

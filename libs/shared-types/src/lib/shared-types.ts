@@ -83,13 +83,15 @@ export interface AiProviderConfigDto {
   id: string;
   providerName: string;
   model?: string;
+  baseUrl?: string;
   hasKey: boolean;
 }
 
 export interface CreateAiProviderConfigDto {
   providerName: string;
-  apiKey: string;
+  apiKey?: string;
   model?: string;
+  baseUrl?: string;
 }
 
 export interface AiGenerateDto {

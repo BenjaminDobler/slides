@@ -2,13 +2,17 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
+  private baseUrl?: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    // Note: GoogleGenerativeAI doesn't support custom baseUrl in the same way
+    // For Gemini proxies, users would need to use a different approach
     const genAI = new GoogleGenerativeAI(this.apiKey);
 
     const model = genAI.getGenerativeModel({

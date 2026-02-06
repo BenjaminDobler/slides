@@ -14,7 +14,15 @@
     <div class="provider-list">
       @for (c of configs(); track c.id) {
         <div class="provider-card">
-          <span>{{ c.providerName }} {{ c.model ? '(' + c.model + ')' : '' }}</span>
+          <div class="provider-info">
+            <span class="provider-name">{{ c.providerName }}</span>
+            @if (c.model) {
+              <span class="provider-detail">Model: {{ c.model }}</span>
+            }
+            @if (c.baseUrl) {
+              <span class="provider-detail">Proxy: {{ c.baseUrl }}</span>
+            }
+          </div>
           <button class="btn-delete" (click)="removeConfig(c.id)">Remove</button>
         </div>
       }
@@ -27,9 +35,10 @@
         <option value="anthropic">Anthropic</option>
         <option value="gemini">Gemini</option>
       </select>
-      <input type="password" [(ngModel)]="newApiKey" placeholder="API Key" />
+      <input type="text" [(ngModel)]="newBaseUrl" placeholder="Base URL (optional, for proxy)" />
+      <input type="password" [(ngModel)]="newApiKey" placeholder="API Key (optional with proxy)" />
       <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
-      <button (click)="addConfig()">Add</button>
+      <button (click)="addConfig()" [disabled]="!newApiKey && !newBaseUrl">Add</button>
     </div>
   </section>
   <section>

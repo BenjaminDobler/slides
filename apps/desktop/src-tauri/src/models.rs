@@ -110,3 +110,126 @@ impl From<LayoutRule> for LayoutRuleResponse {
         }
     }
 }
+
+// AI Provider Config
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct AiProviderConfig {
+    pub id: String,
+    pub provider_name: String,
+    pub api_key_encrypted: String,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+    pub user_id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiProviderConfigResponse {
+    pub id: String,
+    pub provider_name: String,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+    pub has_key: bool,
+}
+
+impl From<AiProviderConfig> for AiProviderConfigResponse {
+    fn from(config: AiProviderConfig) -> Self {
+        Self {
+            id: config.id,
+            provider_name: config.provider_name,
+            model: config.model,
+            base_url: config.base_url,
+            has_key: true,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateAiProviderConfig {
+    pub provider_name: String,
+    pub api_key: Option<String>,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+}
+
+// AI Request DTOs
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiGenerateRequest {
+    pub prompt: String,
+    pub provider: String,
+    pub context: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiImproveRequest {
+    pub slide_content: String,
+    pub provider: String,
+    pub instruction: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiSuggestStyleRequest {
+    pub content: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiGenerateThemeRequest {
+    pub description: String,
+    pub provider: String,
+    pub existing_css: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiSpeakerNotesRequest {
+    pub slide_content: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiGenerateDiagramRequest {
+    pub description: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiRewriteRequest {
+    pub slide_content: String,
+    pub provider: String,
+    pub audience: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiOutlineToSlidesRequest {
+    pub outline: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiVisualReviewRequest {
+    pub slide_content: String,
+    pub screenshot: String,
+    pub provider: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiVisualImproveRequest {
+    pub slide_content: String,
+    pub screenshot: String,
+    pub provider: String,
+    pub instruction: Option<String>,
+}
