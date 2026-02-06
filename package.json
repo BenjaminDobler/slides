@@ -4,8 +4,8 @@
   "license": "MIT",
   "scripts": {
     "frontend": "npx nx serve frontend",
-    "desktop": "concurrently --kill-others \"npm run frontend\" \"sleep 8 && cd apps/desktop/src-tauri && cargo tauri dev --no-watch\"",
-    "desktop:build": "npx nx build frontend --configuration=production && cd apps/desktop/src-tauri && cargo tauri build",
+    "desktop": "concurrently --kill-others \"npm run frontend\" \"sleep 8 && cd apps/desktop/src-tauri && PATH=$HOME/.cargo/bin:$PATH cargo tauri dev --no-watch\"",
+    "desktop:build": "npx nx build frontend --configuration=production && cd apps/desktop/src-tauri && PATH=\"$HOME/.cargo/bin:$PATH\" cargo tauri build",
     "desktop:check": "cd apps/desktop/src-tauri && cargo check"
   },
   "prisma": {
