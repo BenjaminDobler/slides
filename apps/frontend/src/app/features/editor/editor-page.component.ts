@@ -197,6 +197,25 @@ export class EditorPageComponent implements OnInit {
     }
   }
 
+  @HostListener('window:resize')
+  onWindowResize() {
+    // Recalculate pane widths to fit the new window size
+    const dividers = 15; // approximate width for dividers
+    const aiPaneWidth = this.showAi() ? 320 : 0;
+    const available = window.innerWidth - this.thumbnailWidth() - aiPaneWidth - dividers;
+
+    // Keep the same ratio between editor and preview
+    const totalEditorPreview = this.editorWidth() + this.previewWidth();
+    if (totalEditorPreview > 0) {
+      const editorRatio = this.editorWidth() / totalEditorPreview;
+      this.editorWidth.set(Math.max(150, Math.floor(available * editorRatio)));
+      this.previewWidth.set(Math.max(200, Math.floor(available * (1 - editorRatio))));
+    } else {
+      this.editorWidth.set(Math.floor(available / 2));
+      this.previewWidth.set(Math.floor(available / 2));
+    }
+  }
+
   // --- Other ---
 
   private scheduleAutoSave() {
