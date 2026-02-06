@@ -1,0 +1,12 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# Generated files
+/gen/
+
+# SQLite database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

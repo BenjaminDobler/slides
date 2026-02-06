@@ -1,0 +1,37 @@
+{
+  "name": "desktop",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/desktop/src-tauri/src",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/desktop/src-tauri",
+        "command": "cargo tauri dev",
+        "env": {
+          "PATH": "{args.cargoPath}:$PATH"
+        }
+      },
+      "dependsOn": []
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/desktop/src-tauri",
+        "command": "cargo tauri build",
+        "env": {
+          "PATH": "{args.cargoPath}:$PATH"
+        }
+      },
+      "dependsOn": ["^build"]
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/desktop/src-tauri",
+        "command": "cargo check"
+      }
+    }
+  }
+}
