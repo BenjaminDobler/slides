@@ -10,7 +10,8 @@ A markdown-based presentation editor with AI-powered content and theme generatio
 - Mermaid diagram support with theme-aware styling
 - Multiple built-in themes (Default, Dark, Minimal, Corporate, Creative)
 - Custom theme creation (manual color picker + AI generation)
-- AI assistant for generating slide content and styles (supports Anthropic, OpenAI, Ollama)
+- AI assistant for generating slide content and styles (supports Anthropic, OpenAI, Gemini)
+- MCP server for AI tool integration (Claude Code, etc.)
 - Presentation mode
 - Auto-save
 
@@ -141,6 +142,49 @@ slides/
     seed.ts        # Theme seed data
     migrations/    # Prisma migrations
 ```
+
+## MCP Server
+
+Slides includes a Model Context Protocol (MCP) server that allows AI tools like Claude Code to create and manage presentations.
+
+### Desktop App
+
+The MCP server is built into the desktop app and runs automatically on `http://localhost:3332/mcp/sse`.
+
+Add to your Claude Code config (`~/.claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "slides": {
+      "url": "http://localhost:3332/mcp/sse"
+    }
+  }
+}
+```
+
+No authentication required — the MCP server runs locally with the desktop app.
+
+### Web Version
+
+For the web version, use the published MCP server package:
+
+```json
+{
+  "mcpServers": {
+    "slides": {
+      "command": "npx",
+      "args": ["-y", "slides-mcp-server"],
+      "env": {
+        "SLIDES_AUTH_TOKEN": "<your-token>",
+        "SLIDES_BACKEND_URL": "http://localhost:3332"
+      }
+    }
+  }
+}
+```
+
+Get your auth token from Settings in the web app.
 
 ## Tech Stack
 
