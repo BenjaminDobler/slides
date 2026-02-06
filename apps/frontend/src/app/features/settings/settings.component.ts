@@ -23,6 +23,7 @@ export class SettingsComponent implements OnInit {
   newProvider = 'openai';
   newApiKey = '';
   newModel = '';
+  backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3332';
 
   ngOnInit() {
     this.loadConfigs();

@@ -17,3 +17,12 @@ h3 { margin: 1rem 0 0.5rem; }
 .token-display { flex: 1; padding: 0.5rem; background: #1c1f26; border-radius: 6px; font-size: 0.85rem; color: #8b8d98; border: 1px solid rgba(255,255,255,0.08); }
 .btn-copy { padding: 0.5rem 1rem; border: none; border-radius: 6px; background: #8b5cf6; color: #fff; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
 .btn-copy:hover { background: #7c3aed; }
+.mcp-help { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.mcp-help h3 { margin: 1rem 0 0.5rem; font-size: 0.95rem; color: #e4e5e9; }
+.mcp-help h3:first-child { margin-top: 0; }
+.mcp-config { background: #1c1f26; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; border: 1px solid rgba(255,255,255,0.08); margin: 0.5rem 0; }
+.mcp-config code { color: #a5d6ff; }
+.mcp-desc code { background: #1c1f26; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem; color: #a5d6ff; }
+.env-list { margin: 0.5rem 0; padding-left: 1.2rem; color: #8b8d98; font-size: 0.85rem; }
+.env-list li { margin-bottom: 0.4rem; }
+.env-list code { background: #1c1f26; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem; color: #a5d6ff; }
