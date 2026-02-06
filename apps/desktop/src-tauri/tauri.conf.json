@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../../../dist/apps/frontend/browser",
     "devUrl": "http://localhost:4200",
-    "beforeDevCommand": "cd ../../.. && npx nx serve frontend",
-    "beforeBuildCommand": "cd ../../.. && npx nx build frontend --configuration=production"
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
   },
   "app": {
     "withGlobalTauri": true,

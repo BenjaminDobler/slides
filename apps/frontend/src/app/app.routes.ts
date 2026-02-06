@@ -1,9 +1,11 @@
 import { Route } from '@angular/router';
+import { desktopRedirectGuard } from './core/guards/desktop-redirect.guard';
 
 export const appRoutes: Route[] = [
   { path: '', redirectTo: 'presentations', pathMatch: 'full' },
   {
     path: 'login',
+    canActivate: [desktopRedirectGuard],
     loadComponent: () =>
       import('./features/auth/login.component').then((m) => m.LoginComponent),
   },

@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "desktop": "cd apps/desktop/src-tauri && cargo tauri dev",
-    "desktop:build": "cd apps/desktop/src-tauri && cargo tauri build",
+    "frontend": "npx nx serve frontend",
+    "desktop": "concurrently --kill-others \"npm run frontend\" \"sleep 8 && cd apps/desktop/src-tauri && cargo tauri dev --no-watch\"",
+    "desktop:build": "npx nx build frontend --configuration=production && cd apps/desktop/src-tauri && cargo tauri build",
     "desktop:check": "cd apps/desktop/src-tauri && cargo check"
   },
   "prisma": {
@@ -77,6 +78,7 @@
     "@types/pg": "^8.16.0",
     "@typescript-eslint/utils": "^8.40.0",
     "angular-eslint": "^21.0.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "jsonc-eslint-parser": "^2.1.0",

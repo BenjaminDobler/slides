@@ -24,6 +24,7 @@ export class SettingsComponent implements OnInit {
   newApiKey = '';
   newModel = '';
   backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3332';
+  isDesktopApp = this.authService.isDesktopApp;
 
   ngOnInit() {
     this.loadConfigs();

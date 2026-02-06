@@ -29,16 +29,31 @@
   </section>
   <section>
     <h2>MCP Server</h2>
-    <p class="mcp-desc">Use this token to connect the MCP server to external AI tools like Claude Code.</p>
-    <div class="token-row">
-      <code class="token-display">{{ tokenCopied() ? 'Copied!' : '••••••••••••••••' }}</code>
-      <button class="btn-copy" (click)="copyToken()">Copy Token</button>
-    </div>
 
-    <div class="mcp-help">
-      <h3>Setup for Claude Code</h3>
-      <p class="mcp-desc">Add the following to your Claude Code MCP settings file (<code>~/.claude/claude_desktop_config.json</code>):</p>
-      <pre class="mcp-config"><code>{{'{'}}"mcpServers": {{'{'}}
+    @if (isDesktopApp) {
+      <p class="mcp-desc">The MCP server is built into this desktop app and available locally.</p>
+
+      <div class="mcp-help">
+        <h3>Setup for Claude Code</h3>
+        <p class="mcp-desc">Add the following to your Claude Code MCP settings file (<code>~/.claude/claude_desktop_config.json</code>):</p>
+        <pre class="mcp-config"><code>{{'{'}}"mcpServers": {{'{'}}
+  "slides": {{'{'}}
+    "url": "http://localhost:3332/mcp/sse"
+  {{'}'}}
+{{'}'}}{{'}'}}</code></pre>
+        <p class="mcp-desc">No authentication required — the MCP server runs locally with the desktop app.</p>
+      </div>
+    } @else {
+      <p class="mcp-desc">Use this token to connect the MCP server to external AI tools like Claude Code.</p>
+      <div class="token-row">
+        <code class="token-display">{{ tokenCopied() ? 'Copied!' : '••••••••••••••••' }}</code>
+        <button class="btn-copy" (click)="copyToken()">Copy Token</button>
+      </div>
+
+      <div class="mcp-help">
+        <h3>Setup for Claude Code</h3>
+        <p class="mcp-desc">Add the following to your Claude Code MCP settings file (<code>~/.claude/claude_desktop_config.json</code>):</p>
+        <pre class="mcp-config"><code>{{'{'}}"mcpServers": {{'{'}}
   "slides": {{'{'}}
     "command": "npx",
     "args": ["-y", "slides-mcp-server"],
@@ -48,13 +63,14 @@
     {{'}'}}
   {{'}'}}
 {{'}'}}{{'}'}}</code></pre>
-      <p class="mcp-desc">Replace <code>&lt;your-token&gt;</code> with the token copied above.</p>
+        <p class="mcp-desc">Replace <code>&lt;your-token&gt;</code> with the token copied above.</p>
 
-      <h3>Environment Variables</h3>
-      <ul class="env-list">
-        <li><code>SLIDES_AUTH_TOKEN</code> — Your authentication token (required)</li>
-        <li><code>SLIDES_BACKEND_URL</code> — Backend API URL (default: <code>http://localhost:3332</code>)</li>
-      </ul>
-    </div>
+        <h3>Environment Variables</h3>
+        <ul class="env-list">
+          <li><code>SLIDES_AUTH_TOKEN</code> — Your authentication token (required)</li>
+          <li><code>SLIDES_BACKEND_URL</code> — Backend API URL (default: <code>http://localhost:3332</code>)</li>
+        </ul>
+      </div>
+    }
   </section>
 </div>
