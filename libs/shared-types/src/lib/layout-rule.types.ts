@@ -17,6 +17,7 @@ export interface LayoutConditions {
   hasList?: boolean;
   hasCodeBlock?: boolean;
   hasBlockquote?: boolean;
+  mediaBeforeText?: boolean;
 }
 
 // --- Transform option types ---
@@ -27,8 +28,8 @@ export interface WrapOptions {
 
 export interface SplitTwoOptions {
   className: string; // e.g. "layout-text-image" or "layout-cards-image"
-  leftSelector: 'text' | 'cards'; // what goes on the left
-  rightSelector: 'media'; // what goes on the right
+  leftSelector: 'text' | 'cards' | 'media'; // what goes on the left
+  rightSelector: 'media' | 'text'; // what goes on the right
   leftClassName: string; // e.g. "layout-body" or "layout-cards-side"
   rightClassName: string; // e.g. "layout-media" or "layout-media-side"
 }

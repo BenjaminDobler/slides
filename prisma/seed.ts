@@ -335,6 +335,44 @@ const layoutRules = [
 `,
   },
   {
+    name: 'image-text',
+    displayName: 'Image + Text',
+    description: 'Image on the left, text on the right (when image comes first in markdown)',
+    priority: 45,
+    isDefault: true,
+    conditions: JSON.stringify({
+      hasHeading: true,
+      imageCount: { eq: 1 },
+      mediaBeforeText: true,
+    }),
+    transform: JSON.stringify({
+      type: 'split-two',
+      options: {
+        className: 'layout-image-text',
+        leftSelector: 'media',
+        rightSelector: 'text',
+        leftClassName: 'layout-media',
+        rightClassName: 'layout-body',
+      },
+    }),
+    cssContent: `
+.slide-content .layout-image-text {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  height: 100%;
+}
+.slide-content .layout-image-text .layout-media img,
+.slide-content .layout-image-text .layout-media figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+`,
+  },
+  {
     name: 'text-image',
     displayName: 'Text + Image',
     description: 'Text on the left, single image on the right',

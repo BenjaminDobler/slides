@@ -49,6 +49,7 @@ export class LayoutRulesEditorComponent implements OnInit {
   condHasList: boolean | null = null;
   condHasCodeBlock: boolean | null = null;
   condHasBlockquote: boolean | null = null;
+  condMediaBeforeText: boolean | null = null;
   condImageCountEnabled = false;
   condImageCountOp: 'eq' | 'gte' | 'lte' | 'gt' = 'eq';
   condImageCountVal = 0;
@@ -62,7 +63,7 @@ export class LayoutRulesEditorComponent implements OnInit {
   // Transform options
   wrapClassName = 'layout-hero';
   splitTwoClassName = 'layout-text-image';
-  splitTwoLeftSelector: 'text' | 'cards' = 'text';
+  splitTwoLeftSelector: 'text' | 'cards' | 'media' = 'text';
   splitTwoLeftClassName = 'layout-body';
   splitTwoRightClassName = 'layout-media';
   splitTopBottomClassName = 'layout-image-grid';
@@ -187,6 +188,7 @@ export class LayoutRulesEditorComponent implements OnInit {
     this.condHasList = null;
     this.condHasCodeBlock = null;
     this.condHasBlockquote = null;
+    this.condMediaBeforeText = null;
     this.condImageCountEnabled = false;
     this.condImageCountOp = 'eq';
     this.condImageCountVal = 0;
@@ -222,6 +224,7 @@ export class LayoutRulesEditorComponent implements OnInit {
     this.condHasList = c.hasList ?? null;
     this.condHasCodeBlock = c.hasCodeBlock ?? null;
     this.condHasBlockquote = c.hasBlockquote ?? null;
+    this.condMediaBeforeText = c.mediaBeforeText ?? null;
 
     if (c.imageCount) {
       this.condImageCountEnabled = true;
@@ -295,6 +298,7 @@ export class LayoutRulesEditorComponent implements OnInit {
     if (this.condHasList !== null) c.hasList = this.condHasList;
     if (this.condHasCodeBlock !== null) c.hasCodeBlock = this.condHasCodeBlock;
     if (this.condHasBlockquote !== null) c.hasBlockquote = this.condHasBlockquote;
+    if (this.condMediaBeforeText !== null) c.mediaBeforeText = this.condMediaBeforeText;
     if (this.condImageCountEnabled) {
       c.imageCount = { [this.condImageCountOp]: this.condImageCountVal } as NumericCondition;
     }
@@ -317,7 +321,7 @@ export class LayoutRulesEditorComponent implements OnInit {
           options: {
             className: this.splitTwoClassName,
             leftSelector: this.splitTwoLeftSelector,
-            rightSelector: 'media',
+            rightSelector: this.splitTwoLeftSelector === 'media' ? 'text' : 'media',
             leftClassName: this.splitTwoLeftClassName,
             rightClassName: this.splitTwoRightClassName,
           },
@@ -347,7 +351,7 @@ export class LayoutRulesEditorComponent implements OnInit {
     return val ? 'Yes' : 'No';
   }
 
-  cycleBool(field: 'condHasHeading' | 'condHasCards' | 'condHasList' | 'condHasCodeBlock' | 'condHasBlockquote') {
+  cycleBool(field: 'condHasHeading' | 'condHasCards' | 'condHasList' | 'condHasCodeBlock' | 'condHasBlockquote' | 'condMediaBeforeText') {
     const current = this[field];
     if (current === null) this[field] = true;
     else if (current === true) this[field] = false;

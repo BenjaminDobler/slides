@@ -135,6 +135,12 @@
             {{ boolLabel(condHasBlockquote) }}
           </button>
         </div>
+        <div class="cond-toggle">
+          <label>Media Before Text</label>
+          <button class="btn-toggle" (click)="cycleBool('condMediaBeforeText')" [class.yes]="condMediaBeforeText === true" [class.no]="condMediaBeforeText === false">
+            {{ boolLabel(condMediaBeforeText) }}
+          </button>
+        </div>
       </div>
 
       <div class="numeric-conditions">
@@ -213,6 +219,7 @@
           <select [(ngModel)]="splitTwoLeftSelector">
             <option value="text">Text (non-media)</option>
             <option value="cards">Cards (non-media)</option>
+            <option value="media">Media (images)</option>
           </select>
         </div>
         <div class="form-row-inline">

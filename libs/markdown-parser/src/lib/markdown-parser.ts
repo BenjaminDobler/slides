@@ -20,6 +20,7 @@ interface LayoutConditions {
   hasList?: boolean;
   hasCodeBlock?: boolean;
   hasBlockquote?: boolean;
+  mediaBeforeText?: boolean;
 }
 
 interface WrapOptions {
@@ -28,8 +29,8 @@ interface WrapOptions {
 
 interface SplitTwoOptions {
   className: string;
-  leftSelector: 'text' | 'cards';
-  rightSelector: 'media';
+  leftSelector: 'text' | 'cards' | 'media';
+  rightSelector: 'media' | 'text';
   leftClassName: string;
   rightClassName: string;
 }
@@ -178,6 +179,7 @@ export interface ContentFeatures {
   hasList: boolean;
   hasCodeBlock: boolean;
   hasBlockquote: boolean;
+  mediaBeforeText: boolean;
 }
 
 export function analyzeContent(html: string): ContentFeatures {
@@ -196,6 +198,16 @@ export function analyzeContent(html: string): ContentFeatures {
   );
   const h3Count = (html.match(/<h3[^>]*>/g) || []).length;
 
+  // Detect whether the first top-level element is media (image/figure)
+  let mediaBeforeText = false;
+  const parts = splitTopLevel(html);
+  for (const part of parts) {
+    const isMedia = /<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part);
+    if (isMedia) { mediaBeforeText = true; break; }
+    // Any non-media element means text came first
+    break;
+  }
+
   return {
     hasHeading,
     imageCount,
@@ -206,6 +218,7 @@ export function analyzeContent(html: string): ContentFeatures {
     hasList,
     hasCodeBlock,
     hasBlockquote,
+    mediaBeforeText,
   };
 }
 
@@ -225,6 +238,7 @@ export function matchesConditions(features: ContentFeatures, conditions: LayoutC
   if (conditions.hasList !== undefined && features.hasList !== conditions.hasList) return false;
   if (conditions.hasCodeBlock !== undefined && features.hasCodeBlock !== conditions.hasCodeBlock) return false;
   if (conditions.hasBlockquote !== undefined && features.hasBlockquote !== conditions.hasBlockquote) return false;
+  if (conditions.mediaBeforeText !== undefined && features.mediaBeforeText !== conditions.mediaBeforeText) return false;
   if (conditions.imageCount && !matchNumeric(features.imageCount, conditions.imageCount)) return false;
   if (conditions.figureCount && !matchNumeric(features.figureCount, conditions.figureCount)) return false;
   if (conditions.h3Count && !matchNumeric(features.h3Count, conditions.h3Count)) return false;
@@ -256,6 +270,15 @@ export function applyTransform(html: string, transform: LayoutTransform, feature
             rightParts.push(part);
           } else {
             leftParts.push(part);
+          }
+        }
+      } else if (opts.leftSelector === 'media') {
+        // Media + text split (first media left, text right)
+        for (const part of parts) {
+          if ((/<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part)) && leftParts.length === 0) {
+            leftParts.push(part);
+          } else {
+            rightParts.push(part);
           }
         }
       } else {
