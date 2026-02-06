@@ -121,5 +121,22 @@ jobs:
           files: artifacts/**/*
           draft: true
           generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### macOS
+            If you see "app is damaged" error, run this in Terminal:
+            ```
+            xattr -cr /Applications/Slides.app
+            ```
+
+            ### Windows
+            Run the `.msi` installer or `.exe` setup file.
+
+            ### Linux
+            Use the `.deb` package or `.AppImage`.
+
+            ---
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
