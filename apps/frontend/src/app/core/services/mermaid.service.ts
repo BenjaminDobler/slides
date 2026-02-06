@@ -51,12 +51,16 @@ export class MermaidService {
       startOnLoad: false,
       theme: mermaidTheme,
       securityLevel: 'loose',
+      suppressErrorRendering: true,
       flowchart: {
         curve: 'basis',
         padding: 20,
         nodeSpacing: 50,
         rankSpacing: 60,
         htmlLabels: true,
+        useMaxWidth: true,
+        wrappingWidth: 200,
+        defaultRenderer: 'dagre-wrapper',
       },
       sequence: {
         diagramMarginX: 20,

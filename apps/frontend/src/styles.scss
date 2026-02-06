@@ -478,8 +478,62 @@ html, body {
 
 .slide-content .mermaid svg {
   max-width: 100%;
+  max-height: 100%;
   height: auto;
   font-family: 'Inter', 'Segoe UI', sans-serif !important;
+}
+
+/* Hide mermaid accessibility elements that render as black squares */
+.slide-content .mermaid svg > title,
+.slide-content .mermaid svg > desc,
+.slide-content .mermaid svg > style,
+.slide-content .mermaid svg > defs > marker rect {
+  display: none !important;
+}
+
+/* Fix the black square artifact - mermaid renders a rect at the top-left */
+.slide-content .mermaid svg > g > rect:first-child {
+  display: none !important;
+}
+
+/* Also hide any rect that's at position 0,0 with small dimensions (likely markers) */
+.slide-content .mermaid rect[x="0"][y="0"],
+.slide-content .mermaid rect[x="-1"][y="-1"] {
+  display: none !important;
+}
+
+/* Fix edge label backgrounds - ensure they have proper fill */
+.slide-content .mermaid .edgeLabel rect {
+  fill: transparent !important;
+}
+
+/* Fix edge label text background */
+.slide-content .mermaid .edgeLabel foreignObject {
+  overflow: visible;
+}
+
+.slide-content .mermaid .edgeLabel foreignObject > div {
+  background: transparent !important;
+  padding: 2px 4px;
+}
+
+/* Ensure text in nodes doesn't overflow */
+.slide-content .mermaid .nodeLabel {
+  overflow: visible !important;
+}
+
+/* Fix any black square artifacts from foreignObject elements */
+.slide-content .mermaid foreignObject {
+  overflow: visible;
+}
+
+.slide-content .mermaid foreignObject > div {
+  background: transparent !important;
+}
+
+/* Hide any diagram title/description rect that renders as black square */
+.slide-content .mermaid .label-container rect {
+  fill: transparent !important;
 }
 
 /* Node styling - rounded corners and subtle shadows */
