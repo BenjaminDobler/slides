@@ -1,9 +1,15 @@
 use axum::{
-    extract::{Path, State},
+    body::Body,
+    extract::{Multipart, Path, State},
+    http::{header, StatusCode},
+    response::Response,
     routing::{delete, get, post, put},
     Json, Router,
 };
 use serde_json::json;
+use tokio::fs;
+use tokio::io::AsyncWriteExt;
+use uuid::Uuid;
 
 use crate::ai::{create_provider, GenerateOptions};
 use crate::encryption::{decrypt, encrypt};
@@ -22,6 +28,11 @@ pub fn create_router(state: SharedState) -> Router {
         // Themes & Layout
         .route("/themes", get(list_themes))
         .route("/layout-rules", get(list_layout_rules))
+        // Media
+        .route("/media", get(list_media))
+        .route("/media", post(upload_media))
+        .route("/media/{id}", delete(delete_media))
+        .route("/uploads/{filename}", get(serve_upload))
         // AI Config
         .route("/ai-config", get(list_ai_configs))
         .route("/ai-config", post(create_ai_config))
@@ -94,6 +105,157 @@ async fn list_layout_rules(State(state): State<SharedState>) -> AppResult<Json<V
     let rules = state.db.list_layout_rules().await?;
     let responses: Vec<LayoutRuleResponse> = rules.into_iter().map(Into::into).collect();
     Ok(Json(responses))
+}
+
+// Media handlers
+async fn list_media(State(state): State<SharedState>) -> AppResult<Json<Vec<Media>>> {
+    let state = state.read().await;
+    let media = state.db.list_media().await?;
+    Ok(Json(media))
+}
+
+async fn upload_media(
+    State(state): State<SharedState>,
+    mut multipart: Multipart,
+) -> AppResult<Json<Media>> {
+    // Get uploads directory from state
+    let uploads_dir = {
+        let state = state.read().await;
+        state.uploads_dir.clone()
+    };
+
+    // Ensure uploads directory exists
+    fs::create_dir_all(&uploads_dir).await.map_err(|e| {
+        AppError::Internal(format!("Failed to create uploads directory: {}", e))
+    })?;
+
+    // Process the multipart form
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        AppError::BadRequest(format!("Failed to read multipart field: {}", e))
+    })? {
+        let name = field.name().unwrap_or("").to_string();
+        if name != "file" {
+            continue;
+        }
+
+        let original_name = field.file_name().unwrap_or("upload").to_string();
+        let content_type = field.content_type().unwrap_or("application/octet-stream").to_string();
+
+        // Validate mime type (only allow image, video, audio)
+        if !content_type.starts_with("image/")
+            && !content_type.starts_with("video/")
+            && !content_type.starts_with("audio/") {
+            return Err(AppError::BadRequest("Only image, video, and audio files are allowed".to_string()));
+        }
+
+        // Read the file data
+        let data = field.bytes().await.map_err(|e| {
+            AppError::BadRequest(format!("Failed to read file data: {}", e))
+        })?;
+
+        let size = data.len() as i64;
+
+        // Generate unique filename
+        let ext = std::path::Path::new(&original_name)
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("bin");
+        let unique_name = format!("{}-{}.{}",
+            chrono::Utc::now().timestamp_millis(),
+            Uuid::new_v4().to_string().split('-').next().unwrap_or("x"),
+            ext
+        );
+
+        // Write file to disk
+        let file_path = uploads_dir.join(&unique_name);
+        let mut file = fs::File::create(&file_path).await.map_err(|e| {
+            AppError::Internal(format!("Failed to create file: {}", e))
+        })?;
+        file.write_all(&data).await.map_err(|e| {
+            AppError::Internal(format!("Failed to write file: {}", e))
+        })?;
+
+        // Create database record
+        let url = format!("/api/uploads/{}", unique_name);
+        let state = state.read().await;
+        let media = state.db.create_media(
+            unique_name,
+            original_name,
+            content_type,
+            size,
+            url,
+        ).await?;
+
+        return Ok(Json(media));
+    }
+
+    Err(AppError::BadRequest("No file provided".to_string()))
+}
+
+async fn delete_media(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<StatusCode> {
+    let uploads_dir = {
+        let state = state.read().await;
+        state.uploads_dir.clone()
+    };
+
+    let state_read = state.read().await;
+    let media = state_read.db.delete_media(&id).await?;
+
+    if let Some(media) = media {
+        // Delete file from disk
+        let file_path = uploads_dir.join(&media.filename);
+        if file_path.exists() {
+            let _ = fs::remove_file(file_path).await;
+        }
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound("Media not found".to_string()))
+    }
+}
+
+async fn serve_upload(
+    State(state): State<SharedState>,
+    Path(filename): Path<String>,
+) -> Result<Response, AppError> {
+    let uploads_dir = {
+        let state = state.read().await;
+        state.uploads_dir.clone()
+    };
+
+    let file_path = uploads_dir.join(&filename);
+
+    if !file_path.exists() {
+        return Err(AppError::NotFound("File not found".to_string()));
+    }
+
+    let data = fs::read(&file_path).await.map_err(|e| {
+        AppError::Internal(format!("Failed to read file: {}", e))
+    })?;
+
+    // Determine content type from extension
+    let content_type = match file_path.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("svg") => "image/svg+xml",
+        Some("mp4") => "video/mp4",
+        Some("webm") => "video/webm",
+        Some("mp3") => "audio/mpeg",
+        Some("wav") => "audio/wav",
+        Some("ogg") => "audio/ogg",
+        _ => "application/octet-stream",
+    };
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CACHE_CONTROL, "public, max-age=31536000")
+        .body(Body::from(data))
+        .unwrap())
 }
 
 // AI Config handlers

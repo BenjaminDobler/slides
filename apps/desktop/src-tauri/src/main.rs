@@ -37,11 +37,16 @@ async fn start_backend(app_handle: tauri::AppHandle) -> Result<(), Box<dyn std::
     let database_url = format!("sqlite:{}?mode=rwc", db_path.display());
     tracing::info!("Using database at: {}", database_url);
 
+    // Create uploads directory
+    let uploads_dir = app_data_dir.join("uploads");
+    std::fs::create_dir_all(&uploads_dir)?;
+    tracing::info!("Using uploads directory at: {}", uploads_dir.display());
+
     // Initialize database
     let db = db::Database::new_with_url(&database_url).await?;
     db.migrate().await?;
 
-    let state = Arc::new(RwLock::new(AppState { db }));
+    let state = Arc::new(RwLock::new(AppState { db, uploads_dir }));
 
     // Create the API router
     let api_router = api::create_router(state.clone());

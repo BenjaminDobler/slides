@@ -382,4 +382,64 @@ impl Database {
             .await?;
         Ok(())
     }
+
+    // Media
+    pub async fn list_media(&self) -> AppResult<Vec<Media>> {
+        let media = sqlx::query_as::<_, Media>(
+            "SELECT id, filename, original_name, mime_type, size, url, user_id, created_at FROM media WHERE user_id = 'local' ORDER BY created_at DESC"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(media)
+    }
+
+    pub async fn get_media(&self, id: &str) -> AppResult<Option<Media>> {
+        let media = sqlx::query_as::<_, Media>(
+            "SELECT id, filename, original_name, mime_type, size, url, user_id, created_at FROM media WHERE id = ? AND user_id = 'local'"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(media)
+    }
+
+    pub async fn create_media(&self, filename: String, original_name: String, mime_type: String, size: i64, url: String) -> AppResult<Media> {
+        let id = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        sqlx::query(
+            "INSERT INTO media (id, filename, original_name, mime_type, size, url, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, 'local', ?)"
+        )
+        .bind(&id)
+        .bind(&filename)
+        .bind(&original_name)
+        .bind(&mime_type)
+        .bind(size)
+        .bind(&url)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(Media {
+            id,
+            filename,
+            original_name,
+            mime_type,
+            size,
+            url,
+            user_id: "local".to_string(),
+            created_at: now,
+        })
+    }
+
+    pub async fn delete_media(&self, id: &str) -> AppResult<Option<Media>> {
+        let media = self.get_media(id).await?;
+        if media.is_some() {
+            sqlx::query("DELETE FROM media WHERE id = ? AND user_id = 'local'")
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(media)
+    }
 }
