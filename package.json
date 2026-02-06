@@ -2,7 +2,11 @@
   "name": "@slides/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "desktop": "cd apps/desktop/src-tauri && cargo tauri dev",
+    "desktop:build": "cd apps/desktop/src-tauri && cargo tauri build",
+    "desktop:check": "cd apps/desktop/src-tauri && cargo check"
+  },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
