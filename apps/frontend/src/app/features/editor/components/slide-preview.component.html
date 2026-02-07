@@ -19,18 +19,13 @@
     </button>
   </div>
   <div class="slide-area" #slideArea>
-    <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'" >
-      <div class="slide-frame" [attr.data-theme]="theme()">
-        <div class="slide-content">
-          <div
-            class="slide-content-inner"
-            [class.animate-scale]="animateScale()"
-            #slideContent
-            [innerHTML]="currentHtml()"
-            [style.transform]="'scale(' + contentScale() + ')'"
-            [style.transform-origin]="contentTransformOrigin()"
-          ></div>
-        </div>
+    <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'">
+      <div class="slide-frame" [attr.data-theme]="theme()" (dblclick)="onSlideClick($event)">
+        <app-slide-renderer
+          #slideRenderer
+          [html]="currentHtml()"
+          [autoScale]="autoScaleEnabled()"
+        ></app-slide-renderer>
       </div>
     </div>
   </div>

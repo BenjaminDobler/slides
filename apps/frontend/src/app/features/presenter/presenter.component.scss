@@ -5,7 +5,7 @@
 .slide-layer.webgl-active.show-new-slide .slide { opacity: 0; animation: fadeIn 0.4s ease forwards; }
 @keyframes quickFadeOut { from { opacity: 1; } to { opacity: 0; } }
 .slide { width: 960px; height: 600px; overflow: hidden; }
-.slide-content-inner { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; }
+.slide-content-inner { width: 960px; height: 600px; padding: 1.5rem 2.5rem; font-size: 1.5rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
 .controls { position: absolute; bottom: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 10; }
 .slide-counter { color: #8b8d98; font-size: 0.9rem; }
 .transition-picker select { background: rgba(0,0,0,0.8); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }

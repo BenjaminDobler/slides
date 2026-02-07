@@ -22,10 +22,14 @@
           (dragend)="onDragEnd()"
         >
           <div class="thumbnail-number">{{ $index + 1 }}</div>
-          <div class="thumbnail-inner">
-            <div class="thumbnail-scaler slide-content" [attr.data-theme]="theme()" [style.transform]="'scale(' + thumbScale() + ')'">
-              <div #thumbContent class="thumbnail-content" [style.transform]="'scale(' + getContentScale($index) + ')'"></div>
-            </div>
+          <div class="thumbnail-inner" [attr.data-theme]="theme()">
+            <app-slide-renderer
+              [html]="slide.html"
+              [autoScale]="autoScaleEnabled()"
+              [style.transform]="'scale(' + thumbScale() + ')'"
+              [style.transform-origin]="'top left'"
+              [style.pointer-events]="'none'"
+            />
           </div>
         </div>
       }

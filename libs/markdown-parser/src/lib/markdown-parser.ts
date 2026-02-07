@@ -118,27 +118,53 @@ function extractNotes(markdown: string): { content: string; notes?: string } {
 }
 
 /**
- * Transforms `<ul>` lists where every `<li>` matches "**Title:** description"
+ * Transforms `<ul>` lists where every `<li>` matches "Title: description" pattern
  * into a horizontal card grid layout.
+ * Supports both:
+ * - `- **Title:** description` (bold title - legacy)
+ * - `- Title: description` (plain title - Deckless style)
  */
 function transformCardLists(html: string): string {
-  // Match <ul> blocks where ALL <li> items have the pattern <strong>Title:</strong> desc
+  // Match <ul> blocks where ALL <li> items have a "Title: description" pattern
   return html.replace(/<ul([^>]*)>\n?((?:<li[^>]*>[\s\S]*?<\/li>\n?)+)<\/ul>/g, (match, ulAttrs: string, inner: string) => {
     const items = [...inner.matchAll(/<li([^>]*)>([\s\S]*?)<\/li>/g)];
     // Strip optional <p> wrappers inside <li> (loose lists)
     const itemContents = items.map((m) => m[2].trim().replace(/^<p>([\s\S]*)<\/p>$/g, '$1').trim());
-    // Check if every item starts with <strong>...<\/strong> followed by text
-    const allCards = itemContents.every((item) => /^<strong>.+?<\/strong>/.test(item));
+
+    // Check if every item matches card pattern:
+    // 1. Bold title: <strong>Title:</strong> or <strong>Title</strong>:
+    // 2. Plain title: "Word(s): description" where title is at start and has a colon
+    const cardPatterns = [
+      /^<strong>.+?<\/strong>:?\s*/,  // Bold title (with optional colon after)
+      /^[A-Z][^:]{0,50}:\s+/           // Plain title: starts with capital, has colon within 50 chars, followed by space
+    ];
+
+    const allCards = itemContents.every((item) =>
+      cardPatterns.some(pattern => pattern.test(item))
+    );
     if (!allCards) return match;
 
     const cards = items.map((m, i) => {
       const liAttrs = m[1];
       const item = itemContents[i];
-      const titleMatch = item.match(/^<strong>(.+?)<\/strong>\s*([\s\S]*)/);
-      if (!titleMatch) return `<div class="slide-card"${liAttrs}>${item}</div>`;
-      const title = titleMatch[1].replace(/:$/, '');
-      const desc = titleMatch[2];
-      return `<div class="slide-card"${liAttrs}><div class="slide-card-title">${title}</div><div class="slide-card-body">${desc}</div></div>`;
+
+      // Try bold title first: <strong>Title:</strong> or <strong>Title</strong>:
+      let titleMatch = item.match(/^<strong>(.+?)<\/strong>:?\s*([\s\S]*)/);
+      if (titleMatch) {
+        const title = titleMatch[1].replace(/:$/, '');
+        const desc = titleMatch[2];
+        return `<div class="slide-card"${liAttrs}><div class="slide-card-title">${title}</div><div class="slide-card-body">${desc}</div></div>`;
+      }
+
+      // Try plain title: "Title: description"
+      titleMatch = item.match(/^([A-Z][^:]{0,50}):\s+([\s\S]*)/);
+      if (titleMatch) {
+        const title = titleMatch[1].trim();
+        const desc = titleMatch[2];
+        return `<div class="slide-card"${liAttrs}><div class="slide-card-title">${title}</div><div class="slide-card-body">${desc}</div></div>`;
+      }
+
+      return `<div class="slide-card"${liAttrs}>${item}</div>`;
     });
 
     return `<div class="slide-card-grid"${ulAttrs}>${cards.join('\n')}</div>`;
@@ -376,6 +402,10 @@ export function applyAutoLayoutWithRules(html: string, rules: LayoutRuleInput[])
   // Skip if manual columns layout is present
   if (html.includes('slide-columns')) return { html, appliedLayout: 'Columns (manual)' };
 
+  // Skip if cards present - the splitTopLevel function doesn't handle nested divs properly
+  // Let CSS handle card layouts instead
+  if (html.includes('slide-card-grid')) return { html, appliedLayout: 'Cards' };
+
   const features = analyzeContent(html);
   const enabledRules = rules.filter(r => r.enabled);
 
@@ -391,138 +421,156 @@ export function applyAutoLayoutWithRules(html: string, rules: LayoutRuleInput[])
   return { html };
 }
 
-// === Legacy hardcoded auto-layout (fallback) ===
+// === NEW SIMPLIFIED LAYOUT SYSTEM (Based on Deckless) ===
+
+type LayoutType = 'empty' | 'hero' | 'split' | 'split-wide' | 'default';
+
+interface LayoutDetection {
+  layout: LayoutType;
+  hasLists: boolean;
+  imagePosition: 'left' | 'right' | null;
+}
 
 /**
- * Detects content patterns in rendered slide HTML and wraps in layout containers.
- * Skips slides that already use manual <!-- columns --> layout.
+ * Simple layout detection - 5 types only
+ */
+function detectSimpleLayout(html: string): LayoutDetection {
+  // Count elements
+  const hasH1 = /<h1/.test(html);
+  const hasH2 = /<h2/.test(html);
+  const hasH3 = /<h3/.test(html);
+  const hasHeading = hasH1 || hasH2 || hasH3;
+
+  const imgMatches = html.match(/<img/g) || [];
+  const imgCount = imgMatches.length;
+
+  const hasLists = /<[uo]l/.test(html);
+  const hasCode = /<pre/.test(html);
+  const hasBlockquote = /<blockquote/.test(html);
+  const hasCards = html.includes('slide-card-grid');
+
+  const paragraphs = html.match(/<p[^>]*>/g) || [];
+  // Filter out image-only paragraphs
+  const textParagraphCount = paragraphs.filter(p => {
+    const idx = html.indexOf(p);
+    const snippet = html.substring(idx, idx + 200);
+    return !/<p[^>]*>\s*<img/.test(snippet);
+  }).length;
+
+  // Check if content is essentially empty
+  const textContent = html.replace(/<[^>]+>/g, '').trim();
+  if (!textContent && imgCount === 0) {
+    return { layout: 'empty', hasLists: false, imagePosition: null };
+  }
+
+  // Hero: Heading + minimal content, no images/lists/code
+  if (hasHeading && imgCount === 0 && !hasLists && !hasCode && !hasCards && textParagraphCount <= 1) {
+    return { layout: 'hero', hasLists: false, imagePosition: null };
+  }
+
+  // Split: Exactly 1 image + heading + content
+  if (imgCount === 1 && hasHeading && (hasLists || textParagraphCount >= 1 || hasBlockquote)) {
+    // Determine image position (check if image comes before or after text)
+    const imgIndex = html.search(/<img/);
+    const headingIndex = html.search(/<h[123]/);
+    const imagePosition = imgIndex < headingIndex ? 'left' : 'right';
+
+    // Use narrow gap if has lists, wide gap if not
+    const layout = hasLists ? 'split' : 'split-wide';
+    return { layout, hasLists, imagePosition };
+  }
+
+  // Default: Everything else
+  return { layout: 'default', hasLists, imagePosition: null };
+}
+
+/**
+ * Transform HTML for split layout
+ */
+function transformToSplitLayout(html: string, imagePosition: 'left' | 'right'): string {
+  // Extract image (and its wrapper if any)
+  const imgMatch = html.match(/<p[^>]*>\s*<img[^>]+>\s*<\/p>|<figure[^>]*>[\s\S]*?<\/figure>/);
+  if (!imgMatch) return html;
+
+  const imageHtml = imgMatch[0];
+  const textHtml = html.replace(imageHtml, '').trim();
+
+  // Determine order based on image position
+  if (imagePosition === 'left') {
+    return `<div class="split-media">${imageHtml}</div><div class="split-text">${textHtml}</div>`;
+  } else {
+    return `<div class="split-text">${textHtml}</div><div class="split-media">${imageHtml}</div>`;
+  }
+}
+
+/**
+ * Wrap consecutive images in image-row containers (simple post-processing)
+ */
+function wrapConsecutiveImages(html: string): string {
+  // Pattern: 2+ consecutive image paragraphs
+  return html.replace(
+    /(<p[^>]*>\s*<img[^>]+>\s*<\/p>\s*){2,}/g,
+    (match) => {
+      const count = (match.match(/<img/g) || []).length;
+      // Wrap each image in image-wrapper, then wrap all in image-row
+      const wrapped = match.replace(
+        /<p[^>]*>(\s*<img[^>]+>)\s*<\/p>/g,
+        '<div class="image-wrapper">$1</div>'
+      );
+      return `<div class="image-row" data-count="${count}">${wrapped}</div>`;
+    }
+  );
+}
+
+/**
+ * New simplified auto-layout function
  */
 function applyAutoLayout(html: string): LayoutResult {
   // Skip if manual columns layout is present
   if (html.includes('slide-columns')) return { html, appliedLayout: 'Columns (manual)' };
 
-  // Skip image-related layouts if an intelligent image grid is already present
-  const hasImageGrid = html.includes('class="image-grid"');
-  if (hasImageGrid) {
-    // Image grid handles its own layout, just check for hero if no images outside grid
-    const hasHeading = /<h[1-3][^>]*>/.test(html);
-    const hasCards = html.includes('slide-card-grid');
-    const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
-    const hasCodeBlock = /<pre[^>]*>/.test(html);
-    const hasBlockquote = /<blockquote/.test(html);
-    const paragraphs = html.match(/<p[^>]*>[\s\S]*?<\/p>/g) || [];
-    const textParagraphs = paragraphs.filter(
-      (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
-    );
+  // Skip if cards present (keep legacy behavior)
+  if (html.includes('slide-card-grid')) return { html, appliedLayout: 'Cards' };
 
-    // Don't apply any layout transformation - the image grid is already in place
-    return { html, appliedLayout: 'Image Grid' };
+  // Skip if image grid already processed
+  if (html.includes('image-grid')) return { html, appliedLayout: 'Image Grid' };
+
+  // Detect layout type
+  const detection = detectSimpleLayout(html);
+
+  // Apply layout-specific transformations
+  switch (detection.layout) {
+    case 'empty':
+      return {
+        html: `<div data-layout="empty">${html || 'Empty slide'}</div>`,
+        appliedLayout: 'Empty'
+      };
+
+    case 'hero':
+      return {
+        html: `<div data-layout="hero">${html}</div>`,
+        appliedLayout: 'Hero'
+      };
+
+    case 'split':
+      return {
+        html: `<div data-layout="split">${transformToSplitLayout(html, detection.imagePosition || 'right')}</div>`,
+        appliedLayout: 'Split'
+      };
+
+    case 'split-wide':
+      return {
+        html: `<div data-layout="split-wide">${transformToSplitLayout(html, detection.imagePosition || 'right')}</div>`,
+        appliedLayout: 'Split Wide'
+      };
+
+    case 'default':
+    default:
+      return {
+        html: `<div data-layout="default">${html}</div>`,
+        appliedLayout: 'Default'
+      };
   }
-
-  // Analyze top-level content
-  const hasHeading = /<h[1-3][^>]*>/.test(html);
-  const images = html.match(/<img [^>]+>/g) || [];
-  const figures = html.match(/<figure[^>]*>/g) || [];
-  const imageCount = images.length;
-  const figureCount = figures.length;
-  const hasCards = html.includes('slide-card-grid');
-  const hasBlockquote = /<blockquote/.test(html);
-  const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
-  const hasCodeBlock = /<pre[^>]*>/.test(html);
-  const paragraphs = html.match(/<p[^>]*>[\s\S]*?<\/p>/g) || [];
-  // Paragraphs that aren't just images or captions
-  const textParagraphs = paragraphs.filter(
-    (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
-  );
-
-  // Sections: h1/h2 title + 2+ h3 sections each followed by a list → multi-column
-  const h3Count = (html.match(/<h3[^>]*>/g) || []).length;
-  if (h3Count >= 2 && imageCount === 0 && !hasCards) {
-    const parts = splitTopLevel(html);
-    const headerParts: string[] = [];
-    const sections: string[][] = [];
-    let current: string[] | null = null;
-
-    for (const part of parts) {
-      if (/<h3[^>]*>/.test(part)) {
-        if (current) sections.push(current);
-        current = [part];
-      } else if (current) {
-        current.push(part);
-      } else {
-        headerParts.push(part);
-      }
-    }
-    if (current) sections.push(current);
-
-    if (sections.length >= 2) {
-      const header = headerParts.length > 0 ? headerParts.join('\n') : '';
-      const cols = sections.map(s => `<div class="layout-section-col">${s.join('\n')}</div>`).join('\n');
-      return { html: `${header}\n<div class="layout-sections">${cols}</div>`, appliedLayout: 'Sections' };
-    }
-  }
-
-  // Hero: only headings + at most 1 short text paragraph, no images/lists/cards/code
-  if (
-    hasHeading &&
-    imageCount === 0 &&
-    !hasCards &&
-    !hasList &&
-    !hasCodeBlock &&
-    !hasBlockquote &&
-    textParagraphs.length <= 1
-  ) {
-    return { html: `<div class="layout-hero">${html}</div>`, appliedLayout: 'Hero' };
-  }
-
-  // Cards + Image: has card grid and at least one image not inside cards
-  if (hasCards && imageCount > 0) {
-    // Split: everything before/after the first image or figure that's outside cards
-    // Strategy: cards + non-image content on left, images on right
-    const cardAndTextParts: string[] = [];
-    const mediaParts: string[] = [];
-
-    // Simple split: go through top-level elements
-    const parts = splitTopLevel(html);
-    for (const part of parts) {
-      if (/<img [^>]+>/.test(part) && !part.includes('slide-card')) {
-        mediaParts.push(part);
-      } else if (/<figure[^>]*>/.test(part)) {
-        mediaParts.push(part);
-      } else {
-        cardAndTextParts.push(part);
-      }
-    }
-
-    if (mediaParts.length > 0) {
-      return { html: `<div class="layout-cards-image"><div class="layout-cards-side">${cardAndTextParts.join('\n')}</div><div class="layout-media-side">${mediaParts.join('\n')}</div></div>`, appliedLayout: 'Cards + Image' };
-    }
-  }
-
-  // Legacy Image grid layout is disabled - use intelligent image grid via markdown preprocessing
-  // The new system detects consecutive images in markdown and groups them into rows
-  // This fallback would incorrectly grid images that are separated by text
-
-  // Text + Image: heading/text and exactly 1 image
-  if (hasHeading && (imageCount === 1 || figureCount === 1)) {
-    const bodyParts: string[] = [];
-    const mediaParts: string[] = [];
-
-    const parts = splitTopLevel(html);
-    for (const part of parts) {
-      if ((/<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part)) && mediaParts.length === 0) {
-        mediaParts.push(part);
-      } else {
-        bodyParts.push(part);
-      }
-    }
-
-    if (mediaParts.length === 1 && bodyParts.length > 0) {
-      return { html: `<div class="layout-text-image"><div class="layout-body">${bodyParts.join('\n')}</div><div class="layout-media">${mediaParts.join('\n')}</div></div>`, appliedLayout: 'Text + Image' };
-    }
-  }
-
-  return { html };
 }
 
 /**
@@ -676,13 +724,14 @@ function transformImageGrids(html: string): string {
   result = result.replace(/<!--\s*image-row-end\s*-->/g, '</div>');
 
   // Clean up: images inside rows might be wrapped in <p> tags by markdown-it
-  // We need to unwrap them for proper flexbox layout
-  // This handles both single <p> with multiple images and multiple <p> tags
+  // We need to unwrap them and wrap each in image-wrapper for proper flexbox layout
   result = result.replace(/<div class="image-row"([^>]*)>([\s\S]*?)<\/div>/g, (match, attrs, content) => {
     // Extract all images from the content
     const images = content.match(/<img[^>]+>/g) || [];
     if (images.length > 0) {
-      return `<div class="image-row"${attrs}>${images.join('')}</div>`;
+      // Wrap each image in image-wrapper div (like Deckless)
+      const wrapped = images.map((img: string) => `<div class="image-wrapper">${img}</div>`).join('');
+      return `<div class="image-row"${attrs}>${wrapped}</div>`;
     }
     return match;
   });
@@ -702,7 +751,7 @@ function render(content: string): string {
   // Render markdown to HTML
   let html = md.render(processed);
 
-  // Post-process: transform image grid markers to HTML structure
+  // Transform image grid markers into proper HTML structure
   html = transformImageGrids(html);
 
   return html;

@@ -10,8 +10,8 @@
     }
     <!-- Current slide -->
     <div class="slide-layer" #slideLayer [class]="'slide-layer ' + incomingClass()">
-      <div class="slide slide-content">
-        <div class="slide-content-inner" #currentSlideEl [style.transform]="'scale(' + contentScale() + ')'" [style.transform-origin]="contentTransformOrigin()"></div>
+      <div class="slide">
+        <app-slide-renderer #slideRenderer [html]="currentSlide()?.html || ''" [autoScale]="true" />
       </div>
     </div>
   </div>

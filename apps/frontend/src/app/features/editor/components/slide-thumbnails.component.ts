@@ -1,32 +1,24 @@
-import { Component, inject, output, signal, Input, ElementRef, ViewChild, ViewChildren, QueryList, AfterViewInit, AfterViewChecked, OnDestroy, HostListener } from '@angular/core';
+import { Component, output, signal, Input, ElementRef, ViewChild, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { ParsedSlide } from '@slides/markdown-parser';
 import { MediaLibraryComponent } from './media-library.component';
-import { MermaidService } from '../../../core/services/mermaid.service';
+import { SlideRendererComponent } from '../../../shared/components/slide-renderer.component';
 
 @Component({
   selector: 'app-slide-thumbnails',
   standalone: true,
-  imports: [CommonModule, MediaLibraryComponent],
+  imports: [CommonModule, MediaLibraryComponent, SlideRendererComponent],
   templateUrl: './slide-thumbnails.component.html',
   styleUrl: './slide-thumbnails.component.scss',
 })
 export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
-  private mermaidService = inject(MermaidService);
-
-  private static readonly SLIDE_H = 600;
-  private static readonly MIN_CONTENT_SCALE = 0.5;
-  private static readonly SCALE_BOTTOM_PADDING = 48;
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
-  @ViewChildren('thumbContent') thumbContentEls!: QueryList<ElementRef<HTMLDivElement>>;
   thumbScale = signal(0.19);
-  contentScales = signal<number[]>([]);
   activeTab = signal<'slides' | 'library'>('slides');
   private resizeObserver?: ResizeObserver;
-  private needsContentUpdate = false;
   private needsReobserve = false;
-  private lastSlidesJson = '';
 
   ngAfterViewInit() {
     this.observeThumbList();
@@ -37,73 +29,20 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
       this.needsReobserve = false;
       this.observeThumbList();
     }
-    if (this.needsContentUpdate && this.thumbContentEls) {
-      this.needsContentUpdate = false;
-      this.applySlideContent();
-    }
   }
 
   ngOnDestroy() {
     this.resizeObserver?.disconnect();
   }
 
-  private async applySlideContent() {
-    const slides = this.slides();
-    const els = this.thumbContentEls.toArray();
-
-    // Set innerHTML for each thumbnail
-    els.forEach((elRef, i) => {
-      if (slides[i]) {
-        elRef.nativeElement.innerHTML = slides[i].html;
-      }
-    });
-
-    // Render Mermaid diagrams in all thumbnails
-    const container = this.thumbListEl?.nativeElement;
-    if (container) {
-      await this.mermaidService.renderDiagrams(container);
-    }
-
-    // Calculate content scales for each thumbnail
-    this.calcContentScales();
-  }
-
-  private calcContentScales() {
-    const slides = this.slides();
-    const els = this.thumbContentEls.toArray();
-
-    // If auto-scale is disabled, all scales are 1
-    if (!this.autoScaleEnabled()) {
-      this.contentScales.set(slides.map(() => 1));
-      return;
-    }
-
-    const targetHeight = SlideThumbnailsComponent.SLIDE_H - SlideThumbnailsComponent.SCALE_BOTTOM_PADDING;
-
-    const scales = els.map((elRef, i) => {
-      if (!slides[i]) return 1;
-      const contentHeight = elRef.nativeElement.scrollHeight;
-      if (contentHeight > targetHeight) {
-        return Math.max(
-          SlideThumbnailsComponent.MIN_CONTENT_SCALE,
-          targetHeight / contentHeight
-        );
-      }
-      return 1;
-    });
-
-    this.contentScales.set(scales);
-  }
-
-  getContentScale(index: number): number {
-    return this.contentScales()[index] ?? 1;
-  }
-
   private observeThumbList() {
     if (!this.thumbListEl?.nativeElement) return;
     this.calcScale();
     this.resizeObserver?.disconnect();
-    this.resizeObserver = new ResizeObserver(() => this.calcScale());
+    this.resizeObserver = new ResizeObserver(() => {
+      this.calcScale();
+      this.cdr.markForCheck();
+    });
     this.resizeObserver.observe(this.thumbListEl.nativeElement);
   }
 
@@ -115,30 +54,16 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   }
 
   @Input() set slidesInput(value: ParsedSlide[]) {
-    const newSlides = value || [];
-    // Check if content actually changed to avoid unnecessary re-renders
-    const newJson = JSON.stringify(newSlides.map(s => s.html));
-    if (newJson !== this.lastSlidesJson) {
-      this.lastSlidesJson = newJson;
-      this.slides.set(newSlides);
-      this.needsContentUpdate = true;
-    }
+    this.slides.set(value || []);
   }
   @Input() set selectedIndex(value: number) {
     this.currentIndex.set(value);
   }
   @Input() set themeInput(value: string) {
-    if (value !== this.theme()) {
-      this.theme.set(value);
-      this.mermaidService.initializeTheme(value);
-      this.needsContentUpdate = true;
-    }
+    this.theme.set(value);
   }
   @Input() set autoScale(value: boolean) {
-    if (value !== this.autoScaleEnabled()) {
-      this.autoScaleEnabled.set(value);
-      this.calcContentScales();
-    }
+    this.autoScaleEnabled.set(value);
   }
 
   slideSelected = output<number>();
@@ -161,7 +86,6 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   switchTab(tab: 'slides' | 'library') {
     this.activeTab.set(tab);
     if (tab === 'slides') {
-      this.needsContentUpdate = true;
       this.needsReobserve = true;
     }
   }

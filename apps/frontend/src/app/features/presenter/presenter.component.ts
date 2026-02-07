@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, inject, signal, computed, ViewChild, ElementRef, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed, ViewChild, ElementRef, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { MermaidService } from '../../core/services/mermaid.service';
 import { LayoutRuleService } from '../../core/services/layout-rule.service';
 import { WebGLTransitionService, WebGLTransitionType } from '../../core/services/webgl-transition.service';
+import { SlideRendererComponent } from '../../shared/components/slide-renderer.component';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 
@@ -17,11 +18,11 @@ type TransitionType = CSSTransitionType | 'dissolve' | 'morph' | 'waveGL' | 'pix
 @Component({
   selector: 'app-presenter',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SlideRendererComponent],
   templateUrl: './presenter.component.html',
   styleUrl: './presenter.component.scss',
 })
-export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
+export class PresenterComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
@@ -32,18 +33,13 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private webglTransition = inject(WebGLTransitionService);
   private destroyRef = inject(DestroyRef);
 
-  @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
   @ViewChild('slideLayer') slideLayerEl!: ElementRef<HTMLDivElement>;
-
-  private static readonly SLIDE_H = 600;
-  private static readonly MIN_CONTENT_SCALE = 0.5;
-  private static readonly SCALE_BOTTOM_PADDING = 48;
+  @ViewChild('slideRenderer') slideRenderer!: SlideRendererComponent;
 
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
   slideScale = signal(1);
-  contentScale = signal(1);
   transition = signal<TransitionType>('fade');
   animating = signal(false);
   incomingClass = signal('');
@@ -51,32 +47,16 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   outgoingHtml = signal<SafeHtml>('');
   outgoingScale = signal(1);
   outgoingTransformOrigin = signal('top center');
-  private pendingRender = false;
 
   private animationTimeout: any;
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
-  currentHtml: () => SafeHtml;
-
-  // Hero layouts use vertical centering, so scale from center; others scale from top
-  contentTransformOrigin = computed(() => {
-    const layout = this.currentSlide()?.appliedLayout?.toLowerCase() || '';
-    return layout.includes('hero') ? 'center center' : 'top center';
-  });
-
-  constructor() {
-    this.currentHtml = () => {
-      const slide = this.currentSlide();
-      return slide ? this.sanitizer.bypassSecurityTrustHtml(slide.html) : '';
-    };
-  }
 
   ngOnInit() {
     this.calcScale();
     window.addEventListener('resize', this.onResize);
     const id = this.route.snapshot.paramMap.get('id') || '';
 
-    // Load themes and layout rules first, then load presentation
     Promise.all([
       this.themeService.loadThemes(),
       this.layoutRuleService.loadRules(),
@@ -87,33 +67,21 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
         next: (p) => {
           this.theme.set(p.theme);
           this.mermaidService.initializeTheme(p.theme);
-          // Apply the theme CSS
           const themeData = this.themeService.themes().find(t => t.name === p.theme);
           if (themeData) {
             this.themeService.applyTheme(themeData);
           }
           const parsed = parsePresentation(p.content, this.layoutRuleService.rules());
           this.slides.set(parsed.slides);
-          // Use setTimeout to ensure DOM has updated with new slide data
-          setTimeout(() => this.applySlideContent(), 0);
         },
         error: (err) => {
           console.error('Failed to load presentation:', err);
-          // Redirect to login if unauthorized
           if (err.status === 401) {
             this.router.navigate(['/login']);
           }
         }
       });
     });
-  }
-
-  ngAfterViewInit() {
-    // If slides were already loaded before view was ready, render now
-    if (this.pendingRender) {
-      this.pendingRender = false;
-      this.applySlideContent();
-    }
   }
 
   ngOnDestroy() {
@@ -178,7 +146,6 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.animating.set(true);
 
-    // Try html-to-image first (often more accurate)
     let imgSrc: string;
     try {
       const { toPng } = await import('html-to-image');
@@ -198,7 +165,6 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       imgSrc = sourceCanvas.toDataURL();
     }
 
-    // Create debug overlay showing the captured image
     const debugImg = document.createElement('img');
     debugImg.src = imgSrc;
     debugImg.style.cssText = `
@@ -214,7 +180,6 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     `;
     slideLayer.appendChild(debugImg);
 
-    // Add label
     const label = document.createElement('div');
     label.textContent = 'DEBUG: html-to-image capture (5 sec)';
     label.style.cssText = `
@@ -230,17 +195,14 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     `;
     slideLayer.appendChild(label);
 
-    // Wait 5 seconds
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Cleanup debug elements
     debugImg.remove();
     label.remove();
 
-    // Change slide
+    // Change slide - slide-renderer updates automatically
     if (direction === 'forward') this.currentIndex.update((i) => i + 1);
     else this.currentIndex.update((i) => i - 1);
-    await this.applySlideContent();
 
     this.animating.set(false);
   }
@@ -248,32 +210,27 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private async navigate(direction: 'forward' | 'back') {
     const t = this.transition();
     if (t === 'none') {
-      // No animation
+      // No animation - slide-renderer updates automatically via input binding
       if (direction === 'forward') this.currentIndex.update((i) => i + 1);
       else this.currentIndex.update((i) => i - 1);
-      this.applySlideContent();
       return;
     }
 
-    // Handle debug mode
     if (t === 'debug') {
       await this.navigateWithDebug(direction);
       return;
     }
 
-    // Handle WebGL transitions
     if (this.isWebGLTransition(t)) {
       await this.navigateWithWebGL(direction, t);
       return;
     }
 
-    // Capture outgoing slide content and scale (from DOM, includes rendered mermaid)
-    const el = this.currentSlideEl?.nativeElement;
+    const el = this.slideRenderer?.getContentElement();
     this.outgoingHtml.set(this.sanitizer.bypassSecurityTrustHtml(el ? el.innerHTML : ''));
-    this.outgoingScale.set(this.contentScale());
-    this.outgoingTransformOrigin.set(this.contentTransformOrigin());
+    this.outgoingScale.set(this.slideRenderer?.getContentScale() ?? 1);
+    this.outgoingTransformOrigin.set(this.slideRenderer?.getTransformOrigin() ?? 'top center');
 
-    // Determine CSS classes
     const dir = direction === 'forward' ? 'left' : 'right';
     if (t === 'fade' || t === 'zoom') {
       this.outgoingClass.set(`${t}-exit`);
@@ -285,12 +242,9 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.animating.set(true);
 
-    // Change slide index and immediately apply new content
+    // Change slide index - slide-renderer updates automatically via input binding
     if (direction === 'forward') this.currentIndex.update((i) => i + 1);
     else this.currentIndex.update((i) => i - 1);
-
-    // Apply new slide content immediately so it animates in with the correct content
-    this.applySlideContent();
 
     const durations: Record<CSSTransitionType, number> = {
       fade: 400,
@@ -319,7 +273,6 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.animating.set(true);
 
-    // Get the next slide index and content
     const nextIndex = direction === 'forward'
       ? this.currentIndex() + 1
       : this.currentIndex() - 1;
@@ -329,15 +282,12 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // Clone the current slide element to preserve exact styling
-    // This approach ensures we capture the exact same visual appearance
     const tempSlide = slideEl.cloneNode(true) as HTMLElement;
     const tempInner = tempSlide.querySelector('.slide-content-inner') as HTMLElement;
     if (tempInner) {
       tempInner.innerHTML = nextSlide.html;
     }
 
-    // Position temp slide for capture (hidden behind current)
     tempSlide.style.cssText = `
       position: absolute;
       top: 0;
@@ -347,32 +297,24 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       z-index: -1;
     `;
 
-    // Append to the same parent as current slide for proper style inheritance
     slideEl.parentElement?.appendChild(tempSlide);
 
-    // Wait for mermaid to render in the temp element
     if (tempInner) {
       await this.mermaidService.renderDiagrams(tempInner);
     }
 
-    // Small delay to ensure styles are applied
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Initialize WebGL transition with both slides
     const webglType = this.getWebGLType(transition);
     await this.webglTransition.initTransition(slideLayer, slideEl, tempSlide, webglType);
 
-    // Remove temp element - we have the captured texture now
     tempSlide.remove();
 
-    // Start the shader transition animation
     await this.webglTransition.animate(1200);
 
-    // After animation completes, update to the new slide
+    // Update to the new slide - slide-renderer updates automatically
     this.currentIndex.set(nextIndex);
-    await this.applySlideContent();
 
-    // Cleanup
     this.animating.set(false);
   }
 
@@ -386,33 +328,5 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.currentIndex() > 0) {
       this.navigate('back');
     }
-  }
-
-  private async applySlideContent() {
-    const el = this.currentSlideEl?.nativeElement;
-    if (!el) return;
-    const slide = this.currentSlide();
-    el.innerHTML = slide ? slide.html : '';
-
-    await this.mermaidService.renderDiagrams(el);
-    this.calcContentScale();
-  }
-
-  private calcContentScale() {
-    const el = this.currentSlideEl?.nativeElement;
-    if (!el) return;
-
-    const contentHeight = el.scrollHeight;
-    const targetHeight = PresenterComponent.SLIDE_H - PresenterComponent.SCALE_BOTTOM_PADDING;
-
-    let newScale = 1;
-    if (contentHeight > targetHeight) {
-      newScale = Math.max(
-        PresenterComponent.MIN_CONTENT_SCALE,
-        targetHeight / contentHeight
-      );
-    }
-
-    this.contentScale.set(newScale);
   }
 }

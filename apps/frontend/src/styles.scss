@@ -172,41 +172,279 @@ html, body {
   display: block;
 }
 
-/* Slide card grid — generated from lists where every item is **Title:** desc */
+/* Slide card grid — Flexbox layout for proper last-row stretching */
 .slide-card-grid {
-  display: grid;
-  /* Max 4 columns, responsive down to 1 column */
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  /* Hard limit: never more than 4 columns */
-  max-width: 100%;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-/* Enforce max 4 columns even if cards are narrow */
-@supports (grid-template-columns: repeat(4, 1fr)) {
-  .slide-card-grid {
-    grid-template-columns: repeat(auto-fit, minmax(max(180px, calc((100% - 3rem) / 4)), 1fr));
-  }
-}
-.slide-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 1.2rem;
-  min-width: 0;
-}
-.slide-card-title {
-  font-weight: 600;
-  font-size: 1.05em;
-  margin-bottom: 0.4rem;
-}
-.slide-card-body {
-  font-size: 0.85em;
-  opacity: 0.85;
-  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
 }
 
-/* Auto-layout: Hero (centered) */
+/* Card base styling */
+.slide-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  min-width: 0;
+  /* Default: grow to fill space, basis for ~5 columns */
+  flex: 1 1 calc(20% - 0.75rem);
+  min-width: 140px;
+}
+
+/* Single card: center it and don't stretch full width */
+.slide-card-grid:has(.slide-card:only-child) {
+  justify-content: center;
+}
+.slide-card-grid:has(.slide-card:only-child) .slide-card {
+  flex: 0 1 280px;
+}
+
+/* Two cards: each takes half */
+.slide-card-grid:has(.slide-card:first-child:nth-last-child(2)) .slide-card {
+  flex: 1 1 calc(50% - 0.75rem);
+}
+
+/* Three cards: each takes third */
+.slide-card-grid:has(.slide-card:first-child:nth-last-child(3)) .slide-card {
+  flex: 1 1 calc(33.333% - 0.75rem);
+}
+
+/* Four cards: each takes quarter */
+.slide-card-grid:has(.slide-card:first-child:nth-last-child(4)) .slide-card {
+  flex: 1 1 calc(25% - 0.75rem);
+}
+
+/* Five+ cards: basis for 5 columns, will grow to fill last row */
+.slide-card-grid:has(.slide-card:first-child:nth-last-child(n+5)) .slide-card {
+  flex: 1 1 calc(20% - 0.75rem);
+}
+
+/* Inside split layouts (Cards + Image), adjust card sizing */
+.layout-cards-side .slide-card-grid .slide-card,
+.layout-cards-image .slide-card-grid .slide-card {
+  flex: 1 1 calc(50% - 0.5rem);
+  min-width: 120px;
+}
+
+/* ========================================
+   CARDS + IMAGE SIDE-BY-SIDE LAYOUT
+   CSS-only auto-detection using :has()
+   With transform-origin: center, image at 50% stays centered after scaling
+   ======================================== */
+
+/* Content inner gets padding to leave space for the image */
+.slide-content-inner:has(.slide-card-grid):has(> p img),
+.slide-content-inner:has(.slide-card-grid):has(> figure) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-right: calc(45% + 1.5rem); /* Leave space for the image on the right */
+}
+
+/* Title stays in normal flow */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > h1,
+.slide-content-inner:has(.slide-card-grid):has(> p img) > h2,
+.slide-content-inner:has(.slide-card-grid):has(> figure) > h1,
+.slide-content-inner:has(.slide-card-grid):has(> figure) > h2 {
+  margin: 0;
+}
+
+/* Text paragraphs stay in normal flow on the left */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > p:not(:has(img)),
+.slide-content-inner:has(.slide-card-grid):has(> figure) > p:not(:has(img)) {
+  margin: 0;
+}
+
+/* Cards stay in normal flow on the left */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > .slide-card-grid,
+.slide-content-inner:has(.slide-card-grid):has(> figure) > .slide-card-grid {
+  margin: 0;
+  gap: 0.5rem;
+}
+
+/* In cards+image layout, use 3-column basis for cards */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > .slide-card-grid > .slide-card,
+.slide-content-inner:has(.slide-card-grid):has(> figure) > .slide-card-grid > .slide-card {
+  flex: 1 1 calc(33.333% - 0.5rem);
+  min-width: 100px;
+}
+
+/* Image positioned using CSS custom property --image-top calculated in JS.
+   This ensures the image appears centered in the 600px viewport after scaling. */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > p:has(img),
+.slide-content-inner:has(.slide-card-grid):has(> figure) > figure {
+  position: absolute;
+  right: 1rem;
+  top: var(--image-top, 50%);
+  transform: translateY(-50%);
+  width: calc(45% - 2rem);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image inside the image area */
+.slide-content-inner:has(.slide-card-grid):has(> p img) > p:has(img) img,
+.slide-content-inner:has(.slide-card-grid):has(> figure) > figure img {
+  max-height: 350px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.slide-card-title {
+  font-weight: 600;
+  font-size: 0.95em;
+  margin-bottom: 0.3rem;
+}
+.slide-card-body {
+  font-size: 0.8em;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/* ========================================
+   NEW LAYOUT SYSTEM (Based on Deckless)
+   ======================================== */
+
+/* Typography Reset - all spacing via gap, no margins */
+.slide-content h1,
+.slide-content h2,
+.slide-content h3,
+.slide-content h4,
+.slide-content h5,
+.slide-content h6,
+.slide-content p,
+.slide-content blockquote,
+.slide-content pre {
+  margin: 0;
+}
+
+/* Layout: Empty */
+.slide-content [data-layout="empty"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted, #6b7280);
+  font-style: italic;
+}
+
+/* Layout: Hero (centered titles) */
+.slide-content [data-layout="hero"] {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.slide-content [data-layout="hero"] h1 {
+  font-size: 3.5rem;
+}
+
+.slide-content [data-layout="hero"] h2 {
+  font-size: 2.5rem;
+}
+
+.slide-content [data-layout="hero"] p {
+  font-size: 1.5rem;
+  max-width: 80%;
+  opacity: 0.9;
+}
+
+/* Layout: Split (image + text with lists, 24px gap) */
+.slide-content [data-layout="split"] {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+/* Layout: Split Wide (image + text without lists, 48px gap) */
+.slide-content [data-layout="split-wide"] {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+}
+
+/* Split children */
+.slide-content .split-text {
+  flex: 0 0 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.slide-content .split-media {
+  flex: 0 0 45%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-content .split-media img {
+  max-height: 450px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* Layout: Default - like Deckless: flex flex-col space-y-6 */
+.slide-content [data-layout="default"] {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* space-y-6 = 24px */
+}
+
+/* Image Grid container - exactly like Deckless: flex flex-col gap-4 */
+.slide-content .image-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* gap-4 = 16px */
+}
+
+/* Image Row - exactly like Deckless: flex gap-4 justify-center items-start */
+.slide-content .image-row {
+  display: flex;
+  gap: 1rem; /* gap-4 = 16px */
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Image wrapper - exactly like Deckless: flex flex-col items-center */
+.slide-content .image-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Image - exactly like Deckless: max-h-[600px] w-auto rounded-lg object-contain */
+/* The magic: large max-height + w-auto lets flexbox distribute width naturally */
+.slide-content .image-row img {
+  max-height: 600px;
+  width: auto;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.slide-content .image-wrapper figcaption {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+/* Legacy layout support (for backward compatibility) */
 .slide-content .layout-hero {
   display: flex;
   flex-direction: column;
@@ -218,7 +456,6 @@ html, body {
 .slide-content .layout-hero h1 { font-size: 3rem; }
 .slide-content .layout-hero h2 { font-size: 2.2rem; }
 
-/* Auto-layout: Text + Image side by side */
 .slide-content .layout-text-image {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -226,99 +463,7 @@ html, body {
   align-items: center;
   height: 100%;
 }
-.slide-content .layout-media img,
-.slide-content .layout-media figure img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-}
 
-/* Auto-layout: Image grid (legacy) */
-.slide-content .layout-image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin: 1rem 0;
-}
-.slide-content .layout-image-grid img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-}
-.slide-content .layout-image-grid figure {
-  margin: 0;
-}
-
-/* Intelligent Image Grid - rows based on markdown grouping
-   Uses generous sizing + auto-scaling via transform for overflow */
-.slide-content .image-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.slide-content .image-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  justify-content: center;
-}
-
-.slide-content .image-row img {
-  max-height: 450px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  display: block;
-}
-
-/* Single image in a row - slightly larger */
-.slide-content .image-row[data-count="1"] img {
-  max-height: 500px;
-}
-
-/* Figure support in image rows */
-.slide-content .image-row figure {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.slide-content .image-row figure img {
-  max-height: 450px;
-  width: auto;
-}
-
-.slide-content .image-row figure figcaption {
-  margin-top: 0.4rem;
-  font-size: 0.7em;
-  opacity: 0.8;
-}
-
-/* Auto-layout: Cards + Image */
-.slide-content .layout-cards-image {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: start;
-  height: 100%;
-}
-.slide-content .layout-media-side img,
-.slide-content .layout-media-side figure img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-}
-
-/* Auto-layout: Sections (multi-column h3 groups) */
 .slide-content .layout-sections {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
@@ -344,20 +489,36 @@ html, body {
   text-align: center;
 }
 
-/* Slide images default styling */
+/* Slide images default styling - simple max-height approach */
 .slide-content img {
+  max-height: 350px;
+  width: auto;
+  height: auto;
   max-width: 100%;
+  object-fit: contain;
   border-radius: 8px;
+  display: block;
 }
 
-/* Slide lists */
+/* Center standalone images */
+.slide-content > p:has(> img:only-child),
+.slide-content > figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Slide lists - no margins, spacing via gap */
 .slide-content ul,
 .slide-content ol {
-  padding-left: 1.5em;
-  margin: 0.5rem 0;
+  padding-left: 2rem;
+  margin: 0;
 }
 .slide-content li {
-  margin: 0.3rem 0;
+  margin-bottom: 0.25rem;
+}
+.slide-content li:last-child {
+  margin-bottom: 0;
 }
 
 /* Slide tables */
@@ -431,7 +592,7 @@ html, body {
   font-size: 0.75em;
   line-height: 1.5;
   overflow-x: auto;
-  margin: 0.75rem 0;
+  margin: 0;
   position: relative;
 }
 .slide-content pre.hljs code {

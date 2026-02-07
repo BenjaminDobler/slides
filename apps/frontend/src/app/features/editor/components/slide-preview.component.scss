@@ -178,26 +178,6 @@
   }
 }
 
-.slide-content {
-  width: 960px;
-  height: 600px;
-  overflow: hidden;
-  cursor: text;
-  user-select: none;
-}
-
-.slide-content-inner {
-  width: 960px;
-  height: 600px;
-  padding: 3rem;
-  box-sizing: border-box;
-  font-size: 1.5rem;
-
-  &.animate-scale {
-    transition: transform 0.3s ease-out;
-  }
-}
-
 /* Notes section */
 .notes {
   padding: var(--space-4);
