@@ -9,7 +9,7 @@
       </div>
     }
     <!-- Current slide -->
-    <div class="slide-layer" [class]="'slide-layer ' + incomingClass()">
+    <div class="slide-layer" #slideLayer [class]="'slide-layer ' + incomingClass()">
       <div class="slide slide-content">
         <div class="slide-content-inner" #currentSlideEl [style.transform]="'scale(' + contentScale() + ')'" [style.transform-origin]="contentTransformOrigin()"></div>
       </div>
@@ -19,14 +19,25 @@
     <div class="slide-counter">{{ currentIndex() + 1 }} / {{ slides().length }}</div>
     <div class="transition-picker">
       <select [value]="transition()" (change)="onTransitionChange($event)">
-        <option value="fade">Fade</option>
-        <option value="slide">Slide</option>
-        <option value="zoom">Zoom</option>
-        <option value="flip">Flip</option>
-        <option value="cube">Cube</option>
-        <option value="swap">Swap</option>
-        <option value="fall">Fall</option>
-        <option value="glitch">Glitch</option>
+        <optgroup label="CSS Transitions">
+          <option value="fade">Fade</option>
+          <option value="slide">Slide</option>
+          <option value="zoom">Zoom</option>
+          <option value="flip">Flip</option>
+          <option value="cube">Cube</option>
+          <option value="swap">Swap</option>
+          <option value="fall">Fall</option>
+          <option value="glitch">Glitch</option>
+        </optgroup>
+        <optgroup label="WebGL Effects">
+          <option value="circle">Circle</option>
+          <option value="waveGL">Wave</option>
+          <option value="dissolve">Dissolve</option>
+          <option value="noise">Noise</option>
+          <option value="morph">Morph</option>
+          <option value="pixelate">Pixelate</option>
+          <option value="wipe">Wipe</option>
+        </optgroup>
         <option value="none">None</option>
       </select>
     </div>

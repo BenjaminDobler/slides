@@ -1,11 +1,16 @@
 .presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #000; overflow: hidden; perspective: 1500px; }
 .slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; position: relative; transform-style: preserve-3d; }
 .slide-layer { position: absolute; top: 0; left: 0; width: 960px; height: 600px; transform-style: preserve-3d; backface-visibility: hidden; }
+.slide-layer.webgl-active .slide { animation: quickFadeOut 0.35s ease forwards; }
+.slide-layer.webgl-active.show-new-slide .slide { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+@keyframes quickFadeOut { from { opacity: 1; } to { opacity: 0; } }
 .slide { width: 960px; height: 600px; overflow: hidden; }
 .slide-content-inner { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; }
 .controls { position: absolute; bottom: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 10; }
 .slide-counter { color: #8b8d98; font-size: 0.9rem; }
-.transition-picker select { background: rgba(0,0,0,0.5); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
+.transition-picker select { background: rgba(0,0,0,0.8); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
+.transition-picker select optgroup { background: #1a1a1a; color: #6b7280; font-weight: 600; padding: 4px 0; }
+.transition-picker select option { background: #1a1a1a; color: #d1d5db; padding: 4px 8px; }
 .controls:hover .transition-picker select { opacity: 1; }
 
 /* Fade */

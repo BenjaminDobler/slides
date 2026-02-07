@@ -7,10 +7,12 @@ import { PresentationService } from '../../core/services/presentation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { MermaidService } from '../../core/services/mermaid.service';
 import { LayoutRuleService } from '../../core/services/layout-rule.service';
+import { WebGLTransitionService, WebGLTransitionType } from '../../core/services/webgl-transition.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 
-type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'cube' | 'swap' | 'fall' | 'glitch' | 'none';
+type CSSTransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'cube' | 'swap' | 'fall' | 'glitch' | 'none';
+type TransitionType = CSSTransitionType | 'dissolve' | 'morph' | 'waveGL' | 'pixelate' | 'wipe' | 'noise' | 'circle' | 'debug';
 
 @Component({
   selector: 'app-presenter',
@@ -27,9 +29,11 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   private themeService = inject(ThemeService);
   private mermaidService = inject(MermaidService);
   private layoutRuleService = inject(LayoutRuleService);
+  private webglTransition = inject(WebGLTransitionService);
   private destroyRef = inject(DestroyRef);
 
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
+  @ViewChild('slideLayer') slideLayerEl!: ElementRef<HTMLDivElement>;
 
   private static readonly SLIDE_H = 600;
   private static readonly MIN_CONTENT_SCALE = 0.5;
@@ -115,6 +119,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     window.removeEventListener('resize', this.onResize);
     clearTimeout(this.animationTimeout);
+    this.webglTransition.cleanup();
   }
 
   private onResize = () => this.calcScale();
@@ -149,13 +154,116 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private navigate(direction: 'forward' | 'back') {
+  private isWebGLTransition(t: TransitionType): boolean {
+    return ['dissolve', 'morph', 'waveGL', 'pixelate', 'wipe', 'noise', 'circle'].includes(t);
+  }
+
+  private getWebGLType(t: TransitionType): WebGLTransitionType {
+    switch (t) {
+      case 'dissolve': return 'disintegrate';
+      case 'morph': return 'morph';
+      case 'waveGL': return 'wave';
+      case 'pixelate': return 'pixelate';
+      case 'wipe': return 'directionalWipe';
+      case 'noise': return 'noise';
+      case 'circle': return 'circle';
+      default: return 'disintegrate';
+    }
+  }
+
+  private async navigateWithDebug(direction: 'forward' | 'back') {
+    const slideLayer = this.slideLayerEl?.nativeElement;
+    const slideEl = slideLayer?.querySelector('.slide') as HTMLElement;
+    if (!slideLayer || !slideEl) return;
+
+    this.animating.set(true);
+
+    // Try html-to-image first (often more accurate)
+    let imgSrc: string;
+    try {
+      const { toPng } = await import('html-to-image');
+      imgSrc = await toPng(slideEl, {
+        width: 960,
+        height: 600,
+        pixelRatio: 1,
+      });
+    } catch (e) {
+      console.warn('html-to-image failed, falling back to html2canvas', e);
+      const { default: html2canvas } = await import('html2canvas');
+      const sourceCanvas = await html2canvas(slideEl, {
+        scale: 1,
+        useCORS: true,
+        backgroundColor: null,
+      });
+      imgSrc = sourceCanvas.toDataURL();
+    }
+
+    // Create debug overlay showing the captured image
+    const debugImg = document.createElement('img');
+    debugImg.src = imgSrc;
+    debugImg.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 960px;
+      height: 600px;
+      z-index: 200;
+      pointer-events: none;
+      border: 3px solid red;
+      box-sizing: border-box;
+    `;
+    slideLayer.appendChild(debugImg);
+
+    // Add label
+    const label = document.createElement('div');
+    label.textContent = 'DEBUG: html-to-image capture (5 sec)';
+    label.style.cssText = `
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 201;
+      background: red;
+      color: white;
+      padding: 5px 10px;
+      font-size: 14px;
+      font-weight: bold;
+    `;
+    slideLayer.appendChild(label);
+
+    // Wait 5 seconds
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Cleanup debug elements
+    debugImg.remove();
+    label.remove();
+
+    // Change slide
+    if (direction === 'forward') this.currentIndex.update((i) => i + 1);
+    else this.currentIndex.update((i) => i - 1);
+    await this.applySlideContent();
+
+    this.animating.set(false);
+  }
+
+  private async navigate(direction: 'forward' | 'back') {
     const t = this.transition();
     if (t === 'none') {
       // No animation
       if (direction === 'forward') this.currentIndex.update((i) => i + 1);
       else this.currentIndex.update((i) => i - 1);
       this.applySlideContent();
+      return;
+    }
+
+    // Handle debug mode
+    if (t === 'debug') {
+      await this.navigateWithDebug(direction);
+      return;
+    }
+
+    // Handle WebGL transitions
+    if (this.isWebGLTransition(t)) {
+      await this.navigateWithWebGL(direction, t);
       return;
     }
 
@@ -184,7 +292,7 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     // Apply new slide content immediately so it animates in with the correct content
     this.applySlideContent();
 
-    const durations: Record<TransitionType, number> = {
+    const durations: Record<CSSTransitionType, number> = {
       fade: 400,
       slide: 400,
       zoom: 400,
@@ -195,12 +303,77 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       glitch: 500,
       none: 0
     };
-    const duration = durations[t] || 400;
+    const duration = durations[t as CSSTransitionType] || 400;
     this.animationTimeout = setTimeout(() => {
       this.animating.set(false);
       this.incomingClass.set('');
       this.outgoingClass.set('');
     }, duration);
+  }
+
+  private async navigateWithWebGL(direction: 'forward' | 'back', transition: TransitionType) {
+    const slideLayer = this.slideLayerEl?.nativeElement;
+    const slideEl = slideLayer?.querySelector('.slide') as HTMLElement;
+    const presenter = slideLayer?.closest('.presenter') as HTMLElement;
+    if (!slideLayer || !slideEl || !presenter) return;
+
+    this.animating.set(true);
+
+    // Get the next slide index and content
+    const nextIndex = direction === 'forward'
+      ? this.currentIndex() + 1
+      : this.currentIndex() - 1;
+    const nextSlide = this.slides()[nextIndex];
+    if (!nextSlide) {
+      this.animating.set(false);
+      return;
+    }
+
+    // Clone the current slide element to preserve exact styling
+    // This approach ensures we capture the exact same visual appearance
+    const tempSlide = slideEl.cloneNode(true) as HTMLElement;
+    const tempInner = tempSlide.querySelector('.slide-content-inner') as HTMLElement;
+    if (tempInner) {
+      tempInner.innerHTML = nextSlide.html;
+    }
+
+    // Position temp slide for capture (hidden behind current)
+    tempSlide.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 960px;
+      height: 600px;
+      z-index: -1;
+    `;
+
+    // Append to the same parent as current slide for proper style inheritance
+    slideEl.parentElement?.appendChild(tempSlide);
+
+    // Wait for mermaid to render in the temp element
+    if (tempInner) {
+      await this.mermaidService.renderDiagrams(tempInner);
+    }
+
+    // Small delay to ensure styles are applied
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Initialize WebGL transition with both slides
+    const webglType = this.getWebGLType(transition);
+    await this.webglTransition.initTransition(slideLayer, slideEl, tempSlide, webglType);
+
+    // Remove temp element - we have the captured texture now
+    tempSlide.remove();
+
+    // Start the shader transition animation
+    await this.webglTransition.animate(1200);
+
+    // After animation completes, update to the new slide
+    this.currentIndex.set(nextIndex);
+    await this.applySlideContent();
+
+    // Cleanup
+    this.animating.set(false);
   }
 
   private next() {

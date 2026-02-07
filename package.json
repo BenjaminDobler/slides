@@ -26,6 +26,7 @@
     "@prisma/client": "^7.3.0",
     "@tauri-apps/api": "^2.10.1",
     "@types/multer": "^2.0.0",
+    "@types/three": "^0.182.0",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
@@ -34,6 +35,7 @@
     "express": "^4.22.1",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.0.0",
@@ -44,7 +46,8 @@
     "openai": "^6.17.0",
     "pg": "^8.18.0",
     "prisma": "^7.3.0",
-    "rxjs": "~7.8.0"
+    "rxjs": "~7.8.0",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@angular-devkit/core": "~21.1.0",
