@@ -180,14 +180,24 @@ export interface ContentFeatures {
   hasCodeBlock: boolean;
   hasBlockquote: boolean;
   mediaBeforeText: boolean;
+  hasImageGrid: boolean;
 }
 
 export function analyzeContent(html: string): ContentFeatures {
   const hasHeading = /<h[1-3][^>]*>/.test(html);
-  const images = html.match(/<img [^>]+>/g) || [];
-  const figures = html.match(/<figure[^>]*>/g) || [];
-  const imageCount = images.length;
-  const figureCount = figures.length;
+  const hasImageGrid = html.includes('class="image-grid"');
+
+  // Count images that are NOT inside an image-grid (for layout purposes)
+  // Images in a grid are already handled by the grid layout
+  let imageCount = 0;
+  let figureCount = 0;
+  if (!hasImageGrid) {
+    const images = html.match(/<img [^>]+>/g) || [];
+    const figures = html.match(/<figure[^>]*>/g) || [];
+    imageCount = images.length;
+    figureCount = figures.length;
+  }
+
   const hasCards = html.includes('slide-card-grid');
   const hasBlockquote = /<blockquote/.test(html);
   const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
@@ -200,12 +210,14 @@ export function analyzeContent(html: string): ContentFeatures {
 
   // Detect whether the first top-level element is media (image/figure)
   let mediaBeforeText = false;
-  const parts = splitTopLevel(html);
-  for (const part of parts) {
-    const isMedia = /<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part);
-    if (isMedia) { mediaBeforeText = true; break; }
-    // Any non-media element means text came first
-    break;
+  if (!hasImageGrid) {
+    const parts = splitTopLevel(html);
+    for (const part of parts) {
+      const isMedia = /<p[^>]*>\s*<img /.test(part) || /<figure[^>]*>/.test(part);
+      if (isMedia) { mediaBeforeText = true; break; }
+      // Any non-media element means text came first
+      break;
+    }
   }
 
   return {
@@ -219,6 +231,7 @@ export function analyzeContent(html: string): ContentFeatures {
     hasCodeBlock,
     hasBlockquote,
     mediaBeforeText,
+    hasImageGrid,
   };
 }
 
@@ -388,6 +401,24 @@ function applyAutoLayout(html: string): LayoutResult {
   // Skip if manual columns layout is present
   if (html.includes('slide-columns')) return { html, appliedLayout: 'Columns (manual)' };
 
+  // Skip image-related layouts if an intelligent image grid is already present
+  const hasImageGrid = html.includes('class="image-grid"');
+  if (hasImageGrid) {
+    // Image grid handles its own layout, just check for hero if no images outside grid
+    const hasHeading = /<h[1-3][^>]*>/.test(html);
+    const hasCards = html.includes('slide-card-grid');
+    const hasList = /<[uo]l[^>]*>/.test(html) && !hasCards;
+    const hasCodeBlock = /<pre[^>]*>/.test(html);
+    const hasBlockquote = /<blockquote/.test(html);
+    const paragraphs = html.match(/<p[^>]*>[\s\S]*?<\/p>/g) || [];
+    const textParagraphs = paragraphs.filter(
+      (p) => !/<p[^>]*>\s*<img /.test(p) && !/<p[^>]*>\s*<em>[^<]+<\/em>\s*<\/p>/.test(p)
+    );
+
+    // Don't apply any layout transformation - the image grid is already in place
+    return { html, appliedLayout: 'Image Grid' };
+  }
+
   // Analyze top-level content
   const hasHeading = /<h[1-3][^>]*>/.test(html);
   const images = html.match(/<img [^>]+>/g) || [];
@@ -468,26 +499,9 @@ function applyAutoLayout(html: string): LayoutResult {
     }
   }
 
-  // Image grid: 2+ images (or figures)
-  const totalImages = figureCount > 0 ? figureCount : imageCount;
-  if (totalImages >= 2 && hasHeading) {
-    // Put headings/text on top, images in a grid below
-    const topParts: string[] = [];
-    const gridParts: string[] = [];
-
-    const parts = splitTopLevel(html);
-    for (const part of parts) {
-      if (/<figure[^>]*>/.test(part) || (/<p[^>]*>\s*<img /.test(part))) {
-        gridParts.push(part);
-      } else {
-        topParts.push(part);
-      }
-    }
-
-    if (gridParts.length >= 2) {
-      return { html: `${topParts.join('\n')}\n<div class="layout-image-grid">${gridParts.join('\n')}</div>`, appliedLayout: 'Image Grid' };
-    }
-  }
+  // Legacy Image grid layout is disabled - use intelligent image grid via markdown preprocessing
+  // The new system detects consecutive images in markdown and groups them into rows
+  // This fallback would incorrectly grid images that are separated by text
 
   // Text + Image: heading/text and exactly 1 image
   if (hasHeading && (imageCount === 1 || figureCount === 1)) {
@@ -543,11 +557,155 @@ function separateAdjacentLists(markdown: string): string {
 }
 
 /**
+ * Pre-process markdown to detect consecutive images and group them into rows.
+ * Consecutive images (no blank line) form a row, blank lines separate rows.
+ * Only creates a grid if there are 2+ total images in the group.
+ * Returns markdown with special markers that will be processed after HTML rendering.
+ */
+function preprocessImageGrids(markdown: string): string {
+  const lines = markdown.split('\n');
+  const result: string[] = [];
+
+  // Regex to match image markdown: ![alt](src) or ![alt](src "title")
+  const imageRegex = /^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*$/;
+
+  let inImageGroup = false;
+  let currentRow: string[] = [];
+  let rows: string[][] = [];
+  let pendingBlankLines: string[] = []; // Track blank lines to potentially output if not part of grid
+
+  function getTotalImages(): number {
+    let count = currentRow.length;
+    for (const row of rows) {
+      count += row.length;
+    }
+    return count;
+  }
+
+  function flushRows() {
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+      currentRow = [];
+    }
+
+    const totalImages = getTotalImages();
+
+    // Only create a grid if there are 2+ images total
+    if (rows.length > 0 && totalImages >= 2) {
+      // Output the image grid structure
+      result.push('<!-- image-grid-start -->');
+      for (const row of rows) {
+        result.push(`<!-- image-row-start:${row.length} -->`);
+        for (const img of row) {
+          result.push(img);
+        }
+        result.push('<!-- image-row-end -->');
+      }
+      result.push('<!-- image-grid-end -->');
+    } else if (rows.length > 0) {
+      // Single image - output as regular markdown (no grid)
+      // Also output pending blank lines to preserve markdown structure
+      for (const row of rows) {
+        for (const img of row) {
+          result.push(img);
+        }
+      }
+      for (const bl of pendingBlankLines) {
+        result.push(bl);
+      }
+    }
+
+    rows = [];
+    pendingBlankLines = [];
+    inImageGroup = false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const isImage = imageRegex.test(line.trim());
+    const isBlankLine = line.trim() === '';
+
+    if (isImage) {
+      if (!inImageGroup) {
+        inImageGroup = true;
+        // Output any pending blank lines that weren't part of a grid
+        for (const bl of pendingBlankLines) {
+          result.push(bl);
+        }
+        pendingBlankLines = [];
+      }
+      currentRow.push(line);
+    } else if (isBlankLine && inImageGroup) {
+      // Blank line while in image group - start new row
+      if (currentRow.length > 0) {
+        rows.push(currentRow);
+        currentRow = [];
+      }
+      pendingBlankLines.push(line);
+    } else {
+      // Non-image, non-blank line - flush any accumulated images
+      flushRows();
+      result.push(line);
+    }
+  }
+
+  // Flush any remaining images at end
+  flushRows();
+
+  return result.join('\n');
+}
+
+/**
+ * Post-process HTML to convert image grid markers into proper HTML structure.
+ */
+function transformImageGrids(html: string): string {
+  // Check if there are any image grid markers
+  if (!html.includes('<!-- image-grid-start -->')) {
+    return html;
+  }
+
+  // Process grid markers
+  let result = html;
+
+  // Replace grid start/end markers
+  result = result.replace(/<!--\s*image-grid-start\s*-->/g, '<div class="image-grid">');
+  result = result.replace(/<!--\s*image-grid-end\s*-->/g, '</div>');
+
+  // Replace row markers - extract the count for CSS styling
+  result = result.replace(/<!--\s*image-row-start:(\d+)\s*-->/g, '<div class="image-row" data-count="$1">');
+  result = result.replace(/<!--\s*image-row-end\s*-->/g, '</div>');
+
+  // Clean up: images inside rows might be wrapped in <p> tags by markdown-it
+  // We need to unwrap them for proper flexbox layout
+  // This handles both single <p> with multiple images and multiple <p> tags
+  result = result.replace(/<div class="image-row"([^>]*)>([\s\S]*?)<\/div>/g, (match, attrs, content) => {
+    // Extract all images from the content
+    const images = content.match(/<img[^>]+>/g) || [];
+    if (images.length > 0) {
+      return `<div class="image-row"${attrs}>${images.join('')}</div>`;
+    }
+    return match;
+  });
+
+  return result;
+}
+
+/**
  * Renders slide markdown to HTML, processing <!-- columns --> / <!-- split -->
  * directives into a two-column flex layout.
  */
 function render(content: string): string {
-  return md.render(separateAdjacentLists(content));
+  // Preprocess: handle adjacent lists and image grids
+  let processed = separateAdjacentLists(content);
+  processed = preprocessImageGrids(processed);
+
+  // Render markdown to HTML
+  let html = md.render(processed);
+
+  // Post-process: transform image grid markers to HTML structure
+  html = transformImageGrids(html);
+
+  return html;
 }
 
 function renderSlideMarkdown(content: string): string {
