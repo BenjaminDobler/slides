@@ -76,9 +76,37 @@ Supported markdown features:
 - Standard markdown: headings (#, ##, ###), bold, italic, lists, links, images, tables, code blocks
 - Code syntax highlighting: use fenced code blocks with a language identifier
 - Mermaid diagrams: use a fenced code block with "mermaid" as the language
+- Image captions: an image followed by *italic text* on the next line renders as a figure with caption
 
-Special layout directives:
+AUTOMATIC LAYOUTS:
+The system automatically detects content patterns and applies the best layout. Just write clean markdown:
+- A slide with only a heading (+ optional subtitle) → centered hero layout
+- A slide with heading + text + one image → side-by-side (text left, image right)
+- A slide with heading + multiple images → heading on top, image grid below
+- A slide with cards + images → cards on left, image on right
+No special directives needed — just write the content naturally.
+
+Card grid layout:
+- Create a bullet list where every item starts with **Title:** description
+- These are automatically rendered as styled card boxes
+- IMPORTANT: Use MAXIMUM 3-4 cards per slide. More cards will be too narrow and unreadable.
+- If you have more items, split them across multiple slides.
+  Example:
+    - **Feature A:** Description of feature A
+    - **Feature B:** Description of feature B
+    - **Feature C:** Description of feature C
+
+Speaker notes:
+- Wrap notes in <!-- notes --> and <!-- /notes --> directives
+- These are only visible in presenter view, not on the slide itself
+  Example:
+    <!-- notes -->
+    Remember to mention the demo here.
+    <!-- /notes -->
+
+Manual layout directives (optional override):
 - Two-column layout: wrap content in <!-- columns --> and <!-- split --> directives.
+  Only use this if the automatic layout doesn't achieve what you want.
   Example:
     <!-- columns -->
     Left column content (text, images, etc.)
@@ -86,27 +114,12 @@ Special layout directives:
     <!-- split -->
     Right column content
 
-- Card grid: create a bullet list where every item starts with **Title:** description.
-  These are automatically rendered as styled card boxes.
-  IMPORTANT: Use MAXIMUM 3-4 cards per slide. More cards will be too narrow and unreadable.
-  If you have more items, split them across multiple slides.
-  Example:
-    - **Feature A:** Description of feature A
-    - **Feature B:** Description of feature B
-    - **Feature C:** Description of feature C
-
-- Speaker notes: wrap notes in <!-- notes --> and <!-- /notes --> directives.
-  These are only visible in presenter view, not on the slide itself.
-  Example:
-    <!-- notes -->
-    Remember to mention the demo here.
-    <!-- /notes -->
-
 Best practices:
 - Keep slides focused: one main idea per slide
 - Card grids: maximum 3-4 cards per slide (more will be too narrow)
 - Use multiple slides instead of cramming too much content
 - Lists: 4-6 bullet points maximum per slide
+- Let the automatic layouts do the work — just write natural markdown
 `.trim();
 
 const server = new McpServer({
