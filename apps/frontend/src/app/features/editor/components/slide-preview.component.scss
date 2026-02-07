@@ -45,6 +45,34 @@
   }
 }
 
+.auto-scale-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: var(--space-2);
+  opacity: 0.5;
+
+  &:hover {
+    opacity: 0.8;
+    border-color: var(--border-default);
+  }
+
+  &.active {
+    opacity: 1;
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+  }
+}
+
 .slide-nav button {
   display: inline-flex;
   align-items: center;
@@ -153,12 +181,21 @@
 .slide-content {
   width: 960px;
   height: 600px;
-  padding: 3rem;
-  box-sizing: border-box;
   overflow: hidden;
-  font-size: 1.5rem;
   cursor: text;
   user-select: none;
+}
+
+.slide-content-inner {
+  width: 960px;
+  height: 600px;
+  padding: 3rem;
+  box-sizing: border-box;
+  font-size: 1.5rem;
+
+  &.animate-scale {
+    transition: transform 0.3s ease-out;
+  }
 }
 
 /* Notes section */

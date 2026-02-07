@@ -166,15 +166,21 @@
   overflow: hidden;
 }
 
-.thumbnail-content {
+.thumbnail-scaler {
   width: 960px;
   height: 600px;
   transform-origin: top left;
   pointer-events: none;
+  overflow: hidden;
+}
+
+.thumbnail-content {
+  width: 960px;
+  height: 600px;
   padding: 3rem;
   box-sizing: border-box;
   font-size: 1.5rem;
-  overflow: hidden;
+  transform-origin: top center;
 }
 
 /* Context menu */

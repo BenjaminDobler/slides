@@ -3,12 +3,16 @@
     <!-- Outgoing slide (behind) -->
     @if (animating()) {
       <div class="slide-layer" [class]="'slide-layer ' + outgoingClass()">
-        <div class="slide slide-content" [innerHTML]="outgoingHtml()"></div>
+        <div class="slide slide-content">
+          <div class="slide-content-inner" [innerHTML]="outgoingHtml()" [style.transform]="'scale(' + outgoingScale() + ')'" [style.transform-origin]="outgoingTransformOrigin()"></div>
+        </div>
       </div>
     }
     <!-- Current slide -->
     <div class="slide-layer" [class]="'slide-layer ' + incomingClass()">
-      <div class="slide slide-content" #currentSlideEl></div>
+      <div class="slide slide-content">
+        <div class="slide-content-inner" #currentSlideEl [style.transform]="'scale(' + contentScale() + ')'" [style.transform-origin]="contentTransformOrigin()"></div>
+      </div>
     </div>
   </div>
   <div class="controls">
@@ -19,6 +23,10 @@
         <option value="slide">Slide</option>
         <option value="zoom">Zoom</option>
         <option value="flip">Flip</option>
+        <option value="cube">Cube</option>
+        <option value="swap">Swap</option>
+        <option value="fall">Fall</option>
+        <option value="glitch">Glitch</option>
         <option value="none">None</option>
       </select>
     </div>

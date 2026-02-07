@@ -4,11 +4,33 @@
     <span>{{ currentIndex() + 1 }} / {{ slides().length || 1 }}</span>
     <button (click)="next()" [disabled]="currentIndex() >= slides().length - 1">&gt;</button>
     <span class="layout-badge" [class.no-layout]="!currentSlide()?.appliedLayout">{{ currentSlide()?.appliedLayout || 'No Layout' }}</span>
+    <button
+      class="auto-scale-toggle"
+      [class.active]="autoScaleEnabled()"
+      (click)="toggleAutoScale()"
+      title="Auto-fit content to slide"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <polyline points="9 21 3 21 3 15"></polyline>
+        <line x1="21" y1="3" x2="14" y2="10"></line>
+        <line x1="3" y1="21" x2="10" y2="14"></line>
+      </svg>
+    </button>
   </div>
   <div class="slide-area" #slideArea>
     <div class="slide-scaler" [style.transform]="'scale(' + slideScale() + ')'" >
       <div class="slide-frame" [attr.data-theme]="theme()">
-        <div class="slide-content" #slideContent [innerHTML]="currentHtml()"></div>
+        <div class="slide-content">
+          <div
+            class="slide-content-inner"
+            [class.animate-scale]="animateScale()"
+            #slideContent
+            [innerHTML]="currentHtml()"
+            [style.transform]="'scale(' + contentScale() + ')'"
+            [style.transform-origin]="contentTransformOrigin()"
+          ></div>
+        </div>
       </div>
     </div>
   </div>

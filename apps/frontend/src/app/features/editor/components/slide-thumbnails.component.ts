@@ -14,9 +14,14 @@ import { MermaidService } from '../../../core/services/mermaid.service';
 export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
   private mermaidService = inject(MermaidService);
 
+  private static readonly SLIDE_H = 600;
+  private static readonly MIN_CONTENT_SCALE = 0.5;
+  private static readonly SCALE_BOTTOM_PADDING = 48;
+
   @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
   @ViewChildren('thumbContent') thumbContentEls!: QueryList<ElementRef<HTMLDivElement>>;
   thumbScale = signal(0.19);
+  contentScales = signal<number[]>([]);
   activeTab = signal<'slides' | 'library'>('slides');
   private resizeObserver?: ResizeObserver;
   private needsContentUpdate = false;
@@ -58,6 +63,40 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
     if (container) {
       await this.mermaidService.renderDiagrams(container);
     }
+
+    // Calculate content scales for each thumbnail
+    this.calcContentScales();
+  }
+
+  private calcContentScales() {
+    const slides = this.slides();
+    const els = this.thumbContentEls.toArray();
+
+    // If auto-scale is disabled, all scales are 1
+    if (!this.autoScaleEnabled()) {
+      this.contentScales.set(slides.map(() => 1));
+      return;
+    }
+
+    const targetHeight = SlideThumbnailsComponent.SLIDE_H - SlideThumbnailsComponent.SCALE_BOTTOM_PADDING;
+
+    const scales = els.map((elRef, i) => {
+      if (!slides[i]) return 1;
+      const contentHeight = elRef.nativeElement.scrollHeight;
+      if (contentHeight > targetHeight) {
+        return Math.max(
+          SlideThumbnailsComponent.MIN_CONTENT_SCALE,
+          targetHeight / contentHeight
+        );
+      }
+      return 1;
+    });
+
+    this.contentScales.set(scales);
+  }
+
+  getContentScale(index: number): number {
+    return this.contentScales()[index] ?? 1;
   }
 
   private observeThumbList() {
@@ -95,6 +134,12 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
       this.needsContentUpdate = true;
     }
   }
+  @Input() set autoScale(value: boolean) {
+    if (value !== this.autoScaleEnabled()) {
+      this.autoScaleEnabled.set(value);
+      this.calcContentScales();
+    }
+  }
 
   slideSelected = output<number>();
   slideReordered = output<{ from: number; to: number }>();
@@ -106,6 +151,7 @@ export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
+  autoScaleEnabled = signal(true);
   dragIndex = signal<number | null>(null);
   dropIndex = signal<number | null>(null);
   contextMenuVisible = signal(false);

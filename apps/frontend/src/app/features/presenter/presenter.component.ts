@@ -10,7 +10,7 @@ import { LayoutRuleService } from '../../core/services/layout-rule.service';
 import { parsePresentation } from '@slides/markdown-parser';
 import type { ParsedSlide } from '@slides/markdown-parser';
 
-type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'none';
+type TransitionType = 'fade' | 'slide' | 'zoom' | 'flip' | 'cube' | 'swap' | 'fall' | 'glitch' | 'none';
 
 @Component({
   selector: 'app-presenter',
@@ -31,21 +31,34 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild('currentSlideEl') currentSlideEl!: ElementRef<HTMLDivElement>;
 
+  private static readonly SLIDE_H = 600;
+  private static readonly MIN_CONTENT_SCALE = 0.5;
+  private static readonly SCALE_BOTTOM_PADDING = 48;
+
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
   slideScale = signal(1);
+  contentScale = signal(1);
   transition = signal<TransitionType>('fade');
   animating = signal(false);
   incomingClass = signal('');
   outgoingClass = signal('');
   outgoingHtml = signal<SafeHtml>('');
+  outgoingScale = signal(1);
+  outgoingTransformOrigin = signal('top center');
   private pendingRender = false;
 
   private animationTimeout: any;
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml: () => SafeHtml;
+
+  // Hero layouts use vertical centering, so scale from center; others scale from top
+  contentTransformOrigin = computed(() => {
+    const layout = this.currentSlide()?.appliedLayout?.toLowerCase() || '';
+    return layout.includes('hero') ? 'center center' : 'top center';
+  });
 
   constructor() {
     this.currentHtml = () => {
@@ -146,9 +159,11 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // Capture outgoing slide content (from DOM, includes rendered mermaid)
+    // Capture outgoing slide content and scale (from DOM, includes rendered mermaid)
     const el = this.currentSlideEl?.nativeElement;
     this.outgoingHtml.set(this.sanitizer.bypassSecurityTrustHtml(el ? el.innerHTML : ''));
+    this.outgoingScale.set(this.contentScale());
+    this.outgoingTransformOrigin.set(this.contentTransformOrigin());
 
     // Determine CSS classes
     const dir = direction === 'forward' ? 'left' : 'right';
@@ -169,7 +184,18 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     // Apply new slide content immediately so it animates in with the correct content
     this.applySlideContent();
 
-    const duration = t === 'flip' ? 500 : 400;
+    const durations: Record<TransitionType, number> = {
+      fade: 400,
+      slide: 400,
+      zoom: 400,
+      flip: 600,
+      cube: 800,
+      swap: 600,
+      fall: 700,
+      glitch: 500,
+      none: 0
+    };
+    const duration = durations[t] || 400;
     this.animationTimeout = setTimeout(() => {
       this.animating.set(false);
       this.incomingClass.set('');
@@ -196,5 +222,24 @@ export class PresenterComponent implements OnInit, OnDestroy, AfterViewInit {
     el.innerHTML = slide ? slide.html : '';
 
     await this.mermaidService.renderDiagrams(el);
+    this.calcContentScale();
+  }
+
+  private calcContentScale() {
+    const el = this.currentSlideEl?.nativeElement;
+    if (!el) return;
+
+    const contentHeight = el.scrollHeight;
+    const targetHeight = PresenterComponent.SLIDE_H - PresenterComponent.SCALE_BOTTOM_PADDING;
+
+    let newScale = 1;
+    if (contentHeight > targetHeight) {
+      newScale = Math.max(
+        PresenterComponent.MIN_CONTENT_SCALE,
+        targetHeight / contentHeight
+      );
+    }
+
+    this.contentScale.set(newScale);
   }
 }

@@ -1,7 +1,8 @@
-.presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #000; overflow: hidden; perspective: 1200px; }
-.slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; position: relative; }
-.slide-layer { position: absolute; top: 0; left: 0; width: 960px; height: 600px; }
-.slide { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; overflow: hidden; }
+.presenter { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; background: #000; overflow: hidden; perspective: 1500px; }
+.slide-scaler { width: 960px; height: 600px; flex-shrink: 0; transform-origin: center center; position: relative; transform-style: preserve-3d; }
+.slide-layer { position: absolute; top: 0; left: 0; width: 960px; height: 600px; transform-style: preserve-3d; backface-visibility: hidden; }
+.slide { width: 960px; height: 600px; overflow: hidden; }
+.slide-content-inner { width: 960px; height: 600px; padding: 3rem; font-size: 1.5rem; box-sizing: border-box; }
 .controls { position: absolute; bottom: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 10; }
 .slide-counter { color: #8b8d98; font-size: 0.9rem; }
 .transition-picker select { background: rgba(0,0,0,0.5); color: #8b8d98; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
@@ -30,11 +31,100 @@
 @keyframes zoomOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.2); } }
 
 /* Flip */
-.flip-enter-left { animation: flipInLeft 0.5s ease forwards; }
-.flip-exit-left { animation: flipOutLeft 0.5s ease forwards; }
-.flip-enter-right { animation: flipInRight 0.5s ease forwards; }
-.flip-exit-right { animation: flipOutRight 0.5s ease forwards; }
+.flip-enter-left { animation: flipInLeft 0.6s ease forwards; transform-style: preserve-3d; }
+.flip-exit-left { animation: flipOutLeft 0.6s ease forwards; transform-style: preserve-3d; }
+.flip-enter-right { animation: flipInRight 0.6s ease forwards; transform-style: preserve-3d; }
+.flip-exit-right { animation: flipOutRight 0.6s ease forwards; transform-style: preserve-3d; }
 @keyframes flipInLeft { from { transform: rotateY(-90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
 @keyframes flipOutLeft { from { transform: rotateY(0); opacity: 1; } to { transform: rotateY(90deg); opacity: 0; } }
 @keyframes flipInRight { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
 @keyframes flipOutRight { from { transform: rotateY(0); opacity: 1; } to { transform: rotateY(-90deg); opacity: 0; } }
+
+/* Cube - 3D cube rotation */
+.cube-enter-left { animation: cubeInLeft 0.8s ease forwards; transform-style: preserve-3d; }
+.cube-exit-left { animation: cubeOutLeft 0.8s ease forwards; transform-style: preserve-3d; }
+.cube-enter-right { animation: cubeInRight 0.8s ease forwards; transform-style: preserve-3d; }
+.cube-exit-right { animation: cubeOutRight 0.8s ease forwards; transform-style: preserve-3d; }
+@keyframes cubeInLeft {
+  from { transform: translateX(100%) rotateY(90deg); transform-origin: left center; opacity: 0; }
+  to { transform: translateX(0) rotateY(0deg); transform-origin: left center; opacity: 1; }
+}
+@keyframes cubeOutLeft {
+  from { transform: translateX(0) rotateY(0deg); transform-origin: right center; opacity: 1; }
+  to { transform: translateX(-100%) rotateY(-90deg); transform-origin: right center; opacity: 0; }
+}
+@keyframes cubeInRight {
+  from { transform: translateX(-100%) rotateY(-90deg); transform-origin: right center; opacity: 0; }
+  to { transform: translateX(0) rotateY(0deg); transform-origin: right center; opacity: 1; }
+}
+@keyframes cubeOutRight {
+  from { transform: translateX(0) rotateY(0deg); transform-origin: left center; opacity: 1; }
+  to { transform: translateX(100%) rotateY(90deg); transform-origin: left center; opacity: 0; }
+}
+
+/* Swap - 3D swap with scale and rotation */
+.swap-enter-left { animation: swapInLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+.swap-exit-left { animation: swapOutLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+.swap-enter-right { animation: swapInRight 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+.swap-exit-right { animation: swapOutRight 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-style: preserve-3d; }
+@keyframes swapInLeft {
+  from { transform: translateX(100%) translateZ(-500px) rotateZ(10deg); opacity: 0; }
+  to { transform: translateX(0) translateZ(0) rotateZ(0deg); opacity: 1; }
+}
+@keyframes swapOutLeft {
+  from { transform: translateX(0) translateZ(0) rotateZ(0deg); opacity: 1; }
+  to { transform: translateX(-100%) translateZ(-500px) rotateZ(-10deg); opacity: 0; }
+}
+@keyframes swapInRight {
+  from { transform: translateX(-100%) translateZ(-500px) rotateZ(-10deg); opacity: 0; }
+  to { transform: translateX(0) translateZ(0) rotateZ(0deg); opacity: 1; }
+}
+@keyframes swapOutRight {
+  from { transform: translateX(0) translateZ(0) rotateZ(0deg); opacity: 1; }
+  to { transform: translateX(100%) translateZ(-500px) rotateZ(10deg); opacity: 0; }
+}
+
+/* Fall - Gravity drop effect */
+.fall-enter-left { animation: fallIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-style: preserve-3d; }
+.fall-exit-left { animation: fallOut 0.7s cubic-bezier(0.55, 0, 1, 0.45) forwards; transform-style: preserve-3d; }
+.fall-enter-right { animation: fallIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-style: preserve-3d; }
+.fall-exit-right { animation: fallOut 0.7s cubic-bezier(0.55, 0, 1, 0.45) forwards; transform-style: preserve-3d; }
+@keyframes fallIn {
+  from { transform: translateY(-100%) rotateX(30deg); opacity: 0; }
+  to { transform: translateY(0) rotateX(0deg); opacity: 1; }
+}
+@keyframes fallOut {
+  from { transform: translateY(0) rotateX(0deg) scale(1); opacity: 1; }
+  to { transform: translateY(120%) rotateX(-20deg) scale(0.9); opacity: 0; }
+}
+
+/* Glitch - Digital glitch effect */
+.glitch-enter { animation: glitchIn 0.5s steps(1) forwards; }
+.glitch-exit { animation: glitchOut 0.5s steps(1) forwards; }
+@keyframes glitchIn {
+  0% { opacity: 0; transform: translate(0); filter: hue-rotate(0deg); }
+  10% { opacity: 0.8; transform: translate(-5px, 3px); filter: hue-rotate(90deg); clip-path: inset(20% 0 30% 0); }
+  20% { opacity: 0.6; transform: translate(5px, -3px); filter: hue-rotate(180deg); clip-path: inset(50% 0 10% 0); }
+  30% { opacity: 0.9; transform: translate(-3px, 0); filter: hue-rotate(270deg); clip-path: inset(10% 0 60% 0); }
+  40% { opacity: 0.7; transform: translate(3px, 2px); filter: hue-rotate(45deg); clip-path: inset(40% 0 20% 0); }
+  50% { opacity: 0.85; transform: translate(0, -2px); filter: hue-rotate(135deg); clip-path: inset(0); }
+  60% { opacity: 0.95; transform: translate(-2px, 1px); filter: hue-rotate(0deg); clip-path: inset(70% 0 5% 0); }
+  70% { opacity: 1; transform: translate(2px, 0); filter: hue-rotate(0deg); clip-path: inset(0); }
+  80% { transform: translate(-1px, -1px); clip-path: inset(5% 0 80% 0); }
+  90% { transform: translate(1px, 0); clip-path: inset(0); }
+  100% { opacity: 1; transform: translate(0); filter: hue-rotate(0deg); clip-path: inset(0); }
+}
+@keyframes glitchOut {
+  0% { opacity: 1; transform: translate(0); filter: hue-rotate(0deg); clip-path: inset(0); }
+  10% { transform: translate(3px, -2px); filter: hue-rotate(90deg); clip-path: inset(30% 0 20% 0); }
+  20% { transform: translate(-4px, 2px); filter: hue-rotate(180deg); clip-path: inset(10% 0 50% 0); }
+  30% { opacity: 0.8; transform: translate(2px, 0); filter: hue-rotate(270deg); clip-path: inset(60% 0 10% 0); }
+  40% { transform: translate(-2px, 3px); filter: hue-rotate(45deg); clip-path: inset(20% 0 40% 0); }
+  50% { opacity: 0.6; transform: translate(0, -3px); filter: hue-rotate(135deg); clip-path: inset(0); }
+  60% { transform: translate(4px, 1px); clip-path: inset(5% 0 70% 0); }
+  70% { opacity: 0.4; transform: translate(-3px, 0); clip-path: inset(0); }
+  80% { transform: translate(2px, -1px); clip-path: inset(80% 0 5% 0); }
+  90% { opacity: 0.2; transform: translate(-1px, 0); }
+  100% { opacity: 0; transform: translate(5px, -5px) scale(1.02); filter: hue-rotate(0deg); clip-path: inset(0); }
+}
+

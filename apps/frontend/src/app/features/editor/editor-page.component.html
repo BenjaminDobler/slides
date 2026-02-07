@@ -67,6 +67,7 @@
         [slidesInput]="slides()"
         [selectedIndex]="currentSlideIndex()"
         [themeInput]="currentTheme()"
+        [autoScale]="autoScaleEnabled()"
         (slideSelected)="onSlideSelected($event)"
         (slideReordered)="onSlideReordered($event)"
         (slideDeleted)="onSlideDeleted($event)"
@@ -93,8 +94,10 @@
         [slidesInput]="slides()"
         [themeInput]="currentTheme()"
         [selectedIndex]="currentSlideIndex()"
+        [autoScale]="autoScaleEnabled()"
         (indexChanged)="onSlideSelected($event)"
         (navigateToLine)="onNavigateToLine($event)"
+        (autoScaleChanged)="autoScaleEnabled.set($event)"
       />
     </div>
 

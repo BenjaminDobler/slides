@@ -34,12 +34,20 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
 
   private static readonly SLIDE_W = 960;
   private static readonly SLIDE_H = 600;
+  private static readonly SLIDE_PADDING = 48; // 3rem padding on slide-content
+  private static readonly MIN_CONTENT_SCALE = 0.5; // Don't scale below 50%
+  private static readonly SCALE_BOTTOM_PADDING = 48; // Extra padding when scaling content
 
   slides = signal<ParsedSlide[]>([]);
   theme = signal('default');
   currentIndex = signal(0);
   slideScale = signal(1);
+  contentScale = signal(1);
+  autoScaleEnabled = signal(true);
+  animateScale = signal(false); // Only animate when editing, not on slide change
   private needsMermaidRender = false;
+  private needsContentScale = false;
+  private isSlideChange = false;
   private resizeObserver?: ResizeObserver;
 
   // Using @Input setters because they have side effects beyond just storing the value
@@ -55,18 +63,36 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
   }
   @Input() set selectedIndex(value: number) {
     if (value !== undefined && value !== this.currentIndex()) {
+      this.isSlideChange = true;
+      this.animateScale.set(false); // Disable animation immediately for slide changes
       this.currentIndex.set(value);
       this.needsMermaidRender = true;
+    }
+  }
+  @Input() set autoScale(value: boolean) {
+    if (value !== this.autoScaleEnabled()) {
+      this.autoScaleEnabled.set(value);
+      this.calcContentScale();
     }
   }
 
   indexChanged = output<number>();
   navigateToLine = output<number>();
+  autoScaleChanged = output<boolean>();
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);
   currentHtml = computed(() => {
     const slide = this.currentSlide();
     return slide ? this.sanitizer.bypassSecurityTrustHtml(slide.html) : '';
+  });
+
+  // Hero layouts use vertical centering, so scale from center; others scale from top
+  // Return null when scaling is disabled to remove the style entirely
+  contentTransformOrigin = computed(() => {
+    if (!this.autoScaleEnabled()) return null;
+    const layout = this.currentSlide()?.appliedLayout?.toLowerCase() || '';
+    const centeredLayouts = ['hero'];
+    return centeredLayouts.some(l => layout.includes(l)) ? 'center center' : 'top center';
   });
 
   ngAfterViewInit() {
@@ -118,7 +144,12 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
   ngAfterViewChecked() {
     if (this.needsMermaidRender && this.slideContentEl) {
       this.needsMermaidRender = false;
+      this.needsContentScale = true;
       this.renderMermaid();
+    }
+    if (this.needsContentScale && this.slideContentEl) {
+      this.needsContentScale = false;
+      this.calcContentScale();
     }
   }
 
@@ -126,6 +157,54 @@ export class SlidePreviewComponent implements OnChanges, AfterViewInit, AfterVie
     const el = this.slideContentEl?.nativeElement;
     if (!el) return;
     await this.mermaidService.renderDiagrams(el);
+    // After mermaid renders, recalculate content scale
+    this.calcContentScale();
+  }
+
+  private calcContentScale() {
+    const el = this.slideContentEl?.nativeElement;
+    if (!el) return;
+
+    // If auto-scale is disabled, always use scale 1
+    if (!this.autoScaleEnabled()) {
+      if (this.contentScale() !== 1) {
+        this.animateScale.set(!this.isSlideChange);
+        this.contentScale.set(1);
+      }
+      this.isSlideChange = false;
+      return;
+    }
+
+    // scrollHeight returns the actual content height (unaffected by CSS transform)
+    const contentHeight = el.scrollHeight;
+    const slideHeight = SlidePreviewComponent.SLIDE_H;
+    const targetHeight = slideHeight - SlidePreviewComponent.SCALE_BOTTOM_PADDING;
+    const currentScale = this.contentScale();
+
+    let newScale = 1;
+    if (contentHeight > targetHeight) {
+      // Content overflows - scale down to fit with bottom padding
+      newScale = Math.max(
+        SlidePreviewComponent.MIN_CONTENT_SCALE,
+        targetHeight / contentHeight
+      );
+    }
+
+    // Only update if scale changed significantly (avoid micro-adjustments)
+    if (Math.abs(newScale - currentScale) > 0.01) {
+      // Only animate when editing content, not when changing slides
+      this.animateScale.set(!this.isSlideChange);
+      this.contentScale.set(newScale);
+    }
+
+    this.isSlideChange = false;
+  }
+
+  toggleAutoScale() {
+    const newValue = !this.autoScaleEnabled();
+    this.autoScaleEnabled.set(newValue);
+    this.autoScaleChanged.emit(newValue);
+    this.calcContentScale();
   }
 
   async captureScreenshot(): Promise<string> {

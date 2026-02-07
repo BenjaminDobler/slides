@@ -58,6 +58,7 @@ export class EditorPageComponent implements OnInit {
   isDragging = signal(false);
   exporting = signal(false);
   exportProgress = signal('');
+  autoScaleEnabled = signal(true);
 
   thumbnailWidth = signal(200);
   editorWidth = signal(0); // calculated on init
