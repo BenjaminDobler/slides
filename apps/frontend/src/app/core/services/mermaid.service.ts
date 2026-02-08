@@ -1,14 +1,90 @@
 import { Injectable } from '@angular/core';
+import { renderMermaid, THEMES, type RenderOptions, type ThemeName } from 'beautiful-mermaid';
 
 declare const mermaid: any;
+
+// Diagram types supported by beautiful-mermaid
+const BEAUTIFUL_MERMAID_TYPES = [
+  'graph',
+  'flowchart',
+  'stateDiagram',
+  'stateDiagram-v2',
+  'sequenceDiagram',
+  'classDiagram',
+  'erDiagram',
+];
 
 @Injectable({ providedIn: 'root' })
 export class MermaidService {
   private currentTheme = '';
+  private currentColors: RenderOptions = {};
 
   initializeTheme(themeName: string): void {
-    if (typeof mermaid === 'undefined' || themeName === this.currentTheme) return;
     this.currentTheme = themeName;
+    this.updateBeautifulMermaidColors(themeName);
+    this.initializeMermaidJs(themeName);
+  }
+
+  private updateBeautifulMermaidColors(themeName: string): void {
+    // Map our themes to beautiful-mermaid themes or extract colors
+    const themeMapping: Record<string, ThemeName> = {
+      'dark': 'tokyo-night',
+      'noir': 'zinc-dark',
+      'cyberpunk': 'dracula',
+      'ocean': 'nord',
+      'forest': 'nord',
+      'sunset': 'catppuccin-mocha',
+      'creative': 'tokyo-night-storm',
+      'default': 'github-light',
+      'minimal': 'zinc-dark',
+      'corporate': 'github-light',
+    };
+
+    const mappedTheme = themeMapping[themeName];
+    if (mappedTheme && THEMES[mappedTheme]) {
+      const colors = THEMES[mappedTheme];
+      this.currentColors = {
+        bg: colors.bg,
+        fg: colors.fg,
+        line: colors.line,
+        accent: colors.accent,
+        muted: colors.muted,
+        surface: colors.surface,
+        border: colors.border,
+        transparent: true, // Use transparent background to inherit slide background
+      };
+    } else {
+      // Extract colors from CSS custom properties
+      this.extractColorsFromTheme(themeName);
+    }
+  }
+
+  private extractColorsFromTheme(themeName: string): void {
+    const darkThemes = ['dark', 'creative', 'ocean', 'sunset', 'forest', 'noir', 'cyberpunk'];
+    const isDark = darkThemes.includes(themeName);
+
+    // Read CSS custom properties from the theme
+    const tempEl = document.createElement('div');
+    tempEl.className = 'slide-content';
+    tempEl.setAttribute('data-theme', themeName);
+    tempEl.style.display = 'none';
+    document.body.appendChild(tempEl);
+    const styles = getComputedStyle(tempEl);
+    const bg = styles.getPropertyValue('--slide-bg').trim() || (isDark ? '#1a1a2e' : '#ffffff');
+    const text = styles.getPropertyValue('--slide-text').trim() || (isDark ? '#f8f9fa' : '#1a1a1a');
+    const accent = styles.getPropertyValue('--slide-accent').trim() || (isDark ? '#6366f1' : '#4f46e5');
+    document.body.removeChild(tempEl);
+
+    this.currentColors = {
+      bg,
+      fg: text,
+      accent,
+      transparent: true,
+    };
+  }
+
+  private initializeMermaidJs(themeName: string): void {
+    if (typeof mermaid === 'undefined') return;
 
     const darkThemes = ['dark', 'creative', 'ocean', 'sunset', 'forest', 'noir', 'cyberpunk'];
     const isDark = darkThemes.includes(themeName);
@@ -170,8 +246,6 @@ export class MermaidService {
   }
 
   async renderDiagrams(container: HTMLElement): Promise<void> {
-    if (typeof mermaid === 'undefined') return;
-
     // Reset any previously rendered diagrams
     const processed = container.querySelectorAll('.mermaid[data-processed]');
     processed.forEach((node: Element) => {
@@ -185,17 +259,65 @@ export class MermaidService {
     const diagrams = container.querySelectorAll('.mermaid');
     if (diagrams.length === 0) return;
 
-    // Store source before mermaid replaces it
+    // Store source before rendering
     diagrams.forEach((node: Element) => {
       if (!node.getAttribute('data-mermaid-src') && node.textContent) {
         node.setAttribute('data-mermaid-src', node.textContent.trim());
       }
     });
 
+    // Separate diagrams by renderer
+    const beautifulMermaidNodes: Element[] = [];
+    const mermaidJsNodes: Element[] = [];
+
+    diagrams.forEach((node: Element) => {
+      const src = node.getAttribute('data-mermaid-src') || node.textContent || '';
+      if (this.isBeautifulMermaidSupported(src)) {
+        beautifulMermaidNodes.push(node);
+      } else {
+        mermaidJsNodes.push(node);
+      }
+    });
+
+    // Render with beautiful-mermaid
+    await Promise.all(beautifulMermaidNodes.map(node => this.renderWithBeautifulMermaid(node)));
+
+    // Fall back to mermaid.js for unsupported types
+    if (mermaidJsNodes.length > 0 && typeof mermaid !== 'undefined') {
+      try {
+        await mermaid.run({ nodes: mermaidJsNodes });
+      } catch {
+        // mermaid parse error - ignore
+      }
+    }
+  }
+
+  private isBeautifulMermaidSupported(source: string): boolean {
+    const firstLine = source.trim().split('\n')[0].trim();
+    return BEAUTIFUL_MERMAID_TYPES.some(type =>
+      firstLine.startsWith(type + ' ') ||
+      firstLine.startsWith(type + '\n') ||
+      firstLine === type
+    );
+  }
+
+  private async renderWithBeautifulMermaid(node: Element): Promise<void> {
+    const src = node.getAttribute('data-mermaid-src') || node.textContent || '';
     try {
-      await mermaid.run({ nodes: Array.from(diagrams) });
-    } catch {
-      // mermaid parse error - ignore
+      const svg = await renderMermaid(src, this.currentColors);
+      node.innerHTML = svg;
+      node.setAttribute('data-processed', 'true');
+      node.classList.add('beautiful-mermaid');
+    } catch (err) {
+      console.warn('beautiful-mermaid render failed, falling back to mermaid.js:', err);
+      // Fall back to mermaid.js on error
+      if (typeof mermaid !== 'undefined') {
+        try {
+          await mermaid.run({ nodes: [node] });
+        } catch {
+          // ignore
+        }
+      }
     }
   }
 
