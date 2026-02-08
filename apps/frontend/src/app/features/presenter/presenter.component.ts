@@ -39,6 +39,7 @@ export class PresenterComponent implements OnInit, OnDestroy {
   slides = signal<ParsedSlide[]>([]);
   currentIndex = signal(0);
   theme = signal('default');
+  private presentationId = '';
   slideScale = signal(1);
   transition = signal<TransitionType>('fade');
   animating = signal(false);
@@ -85,13 +86,13 @@ export class PresenterComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.calcScale();
     window.addEventListener('resize', this.onResize);
-    const id = this.route.snapshot.paramMap.get('id') || '';
+    this.presentationId = this.route.snapshot.paramMap.get('id') || '';
 
     Promise.all([
       this.themeService.loadThemes(),
       this.layoutRuleService.loadRules(),
     ]).then(() => {
-      this.presentationService.get(id)
+      this.presentationService.get(this.presentationId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
         next: (p) => {
@@ -103,6 +104,15 @@ export class PresenterComponent implements OnInit, OnDestroy {
           }
           const parsed = parsePresentation(p.content, this.layoutRuleService.rules());
           this.slides.set(parsed.slides);
+
+          // Start from specified slide if provided in query params
+          const slideParam = this.route.snapshot.queryParamMap.get('slide');
+          if (slideParam) {
+            const slideIndex = parseInt(slideParam, 10);
+            if (!isNaN(slideIndex) && slideIndex >= 0 && slideIndex < parsed.slides.length) {
+              this.currentIndex.set(slideIndex);
+            }
+          }
         },
         error: (err) => {
           console.error('Failed to load presentation:', err);
@@ -142,7 +152,7 @@ export class PresenterComponent implements OnInit, OnDestroy {
       if (this.isZoomed()) {
         this.resetZoom();
       } else {
-        this.router.navigate(['/presentations']);
+        this.router.navigate(['/editor', this.presentationId]);
       }
       return;
     }

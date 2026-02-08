@@ -317,7 +317,9 @@ export class EditorPageComponent implements OnInit {
   }
 
   present() {
-    this.router.navigate(['/present', this.presentationId]);
+    this.router.navigate(['/present', this.presentationId], {
+      queryParams: { slide: this.currentSlideIndex() }
+    });
   }
 
   onLayoutRulesChanged() {

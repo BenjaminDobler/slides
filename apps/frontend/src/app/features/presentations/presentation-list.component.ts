@@ -44,12 +44,40 @@ export class PresentationListComponent implements OnInit {
     this.router.navigate(['/editor', id]);
   }
 
+  present(id: string, event: Event) {
+    event.stopPropagation();
+    this.router.navigate(['/present', id]);
+  }
+
   remove(id: string, event: Event) {
     event.stopPropagation();
     this.presentationService.delete(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.presentations.update((list) => list.filter((p) => p.id !== id));
+      });
+  }
+
+  clone(id: string, event: Event) {
+    event.stopPropagation();
+    this.presentationService.get(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (original) => {
+          this.presentationService.create({
+            title: `Copy of ${original.title}`,
+            content: original.content,
+            theme: original.theme
+          })
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (cloned) => {
+              this.presentations.update((list) => [cloned, ...list]);
+            },
+            error: (err) => console.error('Failed to clone presentation:', err),
+          });
+        },
+        error: (err) => console.error('Failed to get presentation for cloning:', err),
       });
   }
 
