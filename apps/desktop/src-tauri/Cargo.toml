@@ -1,6 +1,6 @@
 [package]
 name = "slides-desktop"
-version = "0.1.4"
+version = "0.1.5"
 description = "Slides - A presentation editor with MCP support"
 authors = ["you"]
 license = "MIT"
