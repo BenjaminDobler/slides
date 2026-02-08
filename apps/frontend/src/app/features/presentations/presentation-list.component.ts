@@ -20,14 +20,30 @@ export class PresentationListComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   presentations = signal<PresentationDto[]>([]);
+  isRefreshing = signal(false);
 
   ngOnInit() {
+    this.loadPresentations();
+  }
+
+  loadPresentations() {
+    this.isRefreshing.set(true);
     this.presentationService.list()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (p) => this.presentations.set(p),
-        error: (err) => console.error('Failed to load presentations:', err),
+        next: (p) => {
+          this.presentations.set(p);
+          this.isRefreshing.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load presentations:', err);
+          this.isRefreshing.set(false);
+        },
       });
+  }
+
+  refresh() {
+    this.loadPresentations();
   }
 
   createNew() {

@@ -14,9 +14,19 @@ pub struct GenerateOptions {
     pub image_mime_type: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelInfo {
+    pub id: String,
+    pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+}
+
 #[async_trait]
 pub trait AIProvider: Send + Sync {
     async fn generate_content(&self, prompt: &str, options: GenerateOptions) -> AppResult<String>;
+    async fn list_models(&self) -> AppResult<Vec<ModelInfo>>;
 }
 
 // Anthropic Provider
@@ -81,6 +91,18 @@ struct AnthropicResponseContent {
     text: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct AnthropicModelsResponse {
+    data: Vec<AnthropicModel>,
+}
+
+#[derive(Deserialize)]
+struct AnthropicModel {
+    id: String,
+    display_name: String,
+    created_at: Option<String>,
+}
+
 #[async_trait]
 impl AIProvider for AnthropicProvider {
     async fn generate_content(&self, prompt: &str, options: GenerateOptions) -> AppResult<String> {
@@ -142,6 +164,41 @@ impl AIProvider for AnthropicProvider {
             .collect::<Vec<_>>()
             .join(""))
     }
+
+    async fn list_models(&self) -> AppResult<Vec<ModelInfo>> {
+        let response = self
+            .client
+            .get(format!("{}/v1/models", self.base_url))
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("HTTP request failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(AppError::Internal(format!(
+                "Anthropic API error ({}): {}",
+                status, body
+            )));
+        }
+
+        let result: AnthropicModelsResponse = response
+            .json()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to parse response: {}", e)))?;
+
+        Ok(result
+            .data
+            .into_iter()
+            .map(|m| ModelInfo {
+                id: m.id,
+                display_name: m.display_name,
+                created_at: m.created_at,
+            })
+            .collect())
+    }
 }
 
 // OpenAI Provider
@@ -190,6 +247,17 @@ struct OpenAIChoice {
 #[derive(Deserialize)]
 struct OpenAIMessageResponse {
     content: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct OpenAIModelsResponse {
+    data: Vec<OpenAIModel>,
+}
+
+#[derive(Deserialize)]
+struct OpenAIModel {
+    id: String,
+    created: Option<i64>,
 }
 
 #[async_trait]
@@ -252,6 +320,49 @@ impl AIProvider for OpenAIProvider {
             .first()
             .and_then(|c| c.message.content.clone())
             .unwrap_or_default())
+    }
+
+    async fn list_models(&self) -> AppResult<Vec<ModelInfo>> {
+        let response = self
+            .client
+            .get(format!("{}/v1/models", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("HTTP request failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(AppError::Internal(format!(
+                "OpenAI API error ({}): {}",
+                status, body
+            )));
+        }
+
+        let result: OpenAIModelsResponse = response
+            .json()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to parse response: {}", e)))?;
+
+        // Filter to only include chat models (gpt-*)
+        Ok(result
+            .data
+            .into_iter()
+            .filter(|m| m.id.starts_with("gpt-") || m.id.starts_with("o1") || m.id.starts_with("o3"))
+            .map(|m| {
+                let created_at = m.created.map(|ts| {
+                    chrono::DateTime::from_timestamp(ts, 0)
+                        .map(|dt| dt.to_rfc3339())
+                        .unwrap_or_default()
+                });
+                ModelInfo {
+                    display_name: m.id.clone(),
+                    id: m.id,
+                    created_at,
+                }
+            })
+            .collect())
     }
 }
 
@@ -334,6 +445,18 @@ struct GeminiResponsePart {
     text: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct GeminiModelsResponse {
+    models: Vec<GeminiModel>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GeminiModel {
+    name: String,
+    display_name: Option<String>,
+}
+
 #[async_trait]
 impl AIProvider for GeminiProvider {
     async fn generate_content(&self, prompt: &str, options: GenerateOptions) -> AppResult<String> {
@@ -404,6 +527,48 @@ impl AIProvider for GeminiProvider {
                     .join("")
             })
             .unwrap_or_default())
+    }
+
+    async fn list_models(&self) -> AppResult<Vec<ModelInfo>> {
+        let response = self
+            .client
+            .get(format!(
+                "{}/v1beta/models?key={}",
+                self.base_url, self.api_key
+            ))
+            .send()
+            .await
+            .map_err(|e| AppError::Internal(format!("HTTP request failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(AppError::Internal(format!(
+                "Gemini API error ({}): {}",
+                status, body
+            )));
+        }
+
+        let result: GeminiModelsResponse = response
+            .json()
+            .await
+            .map_err(|e| AppError::Internal(format!("Failed to parse response: {}", e)))?;
+
+        // Filter to only include generative models (gemini-*)
+        Ok(result
+            .models
+            .into_iter()
+            .filter(|m| m.name.contains("gemini"))
+            .map(|m| {
+                // name is like "models/gemini-1.5-pro", extract just the model id
+                let id = m.name.strip_prefix("models/").unwrap_or(&m.name).to_string();
+                ModelInfo {
+                    display_name: m.display_name.unwrap_or_else(|| id.clone()),
+                    id,
+                    created_at: None,
+                }
+            })
+            .collect())
     }
 }
 

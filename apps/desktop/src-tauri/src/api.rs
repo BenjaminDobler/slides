@@ -36,6 +36,8 @@ pub fn create_router(state: SharedState) -> Router {
         // AI Config
         .route("/ai-config", get(list_ai_configs))
         .route("/ai-config", post(create_ai_config))
+        .route("/ai-config/{provider}/models", get(list_provider_models))
+        .route("/ai-config/{id}", put(update_ai_config))
         .route("/ai-config/{id}", delete(delete_ai_config))
         // AI Operations
         .route("/ai/generate", post(ai_generate))
@@ -284,6 +286,35 @@ async fn create_ai_config(
     Ok(Json(config.into()))
 }
 
+async fn update_ai_config(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+    Json(data): Json<UpdateAiProviderConfig>,
+) -> AppResult<Json<AiProviderConfigResponse>> {
+    // Verify config exists
+    let state_read = state.read().await;
+    let _existing = state_read
+        .db
+        .get_ai_provider_config_by_id(&id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("AI config not found".to_string()))?;
+    drop(state_read);
+
+    // Prepare update values
+    let api_key_encrypted = if let Some(api_key) = &data.api_key {
+        Some(encrypt(api_key)?)
+    } else {
+        None
+    };
+
+    let state_read = state.read().await;
+    let config = state_read
+        .db
+        .update_ai_provider_config(&id, data.model.clone(), data.base_url.clone(), api_key_encrypted)
+        .await?;
+    Ok(Json(config.into()))
+}
+
 async fn delete_ai_config(
     State(state): State<SharedState>,
     Path(id): Path<String>,
@@ -291,6 +322,24 @@ async fn delete_ai_config(
     let state = state.read().await;
     state.db.delete_ai_provider_config(&id).await?;
     Ok(())
+}
+
+async fn list_provider_models(
+    State(state): State<SharedState>,
+    Path(provider): Path<String>,
+) -> AppResult<Json<Vec<crate::ai::ModelInfo>>> {
+    let state_read = state.read().await;
+    let config = state_read
+        .db
+        .get_ai_provider_config(&provider)
+        .await?
+        .ok_or_else(|| AppError::BadRequest(format!("No {} configuration found. Add your API key in settings.", provider)))?;
+
+    let api_key = decrypt(&config.api_key_encrypted)?;
+    let ai_provider = create_provider(&provider, api_key, config.base_url, config.model)?;
+
+    let models = ai_provider.list_models().await?;
+    Ok(Json(models))
 }
 
 // AI Operation helpers

@@ -1,4 +1,4 @@
-import type { AIProvider, GenerateOptions } from './ai-provider.interface';
+import type { AIProvider, GenerateOptions, ModelInfo } from './ai-provider.interface';
 
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
@@ -38,5 +38,29 @@ export class GeminiProvider implements AIProvider {
     });
 
     return result.response.text();
+  }
+
+  async listModels(): Promise<ModelInfo[]> {
+    // Use the REST API directly since the SDK doesn't expose listModels well
+    const baseUrl = this.baseUrl || 'https://generativelanguage.googleapis.com';
+    const response = await fetch(`${baseUrl}/v1beta/models?key=${this.apiKey}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to list models: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    // Filter to only include generative models (gemini-*)
+    return (data.models || [])
+      .filter((model: any) => model.name?.includes('gemini'))
+      .map((model: any) => {
+        // name is like "models/gemini-1.5-pro", extract just the model id
+        const id = model.name?.replace('models/', '') || model.name;
+        return {
+          id,
+          displayName: model.displayName || id,
+          createdAt: undefined,
+        };
+      });
   }
 }

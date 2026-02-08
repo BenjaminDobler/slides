@@ -1,4 +1,4 @@
-import type { AIProvider, GenerateOptions } from './ai-provider.interface';
+import type { AIProvider, GenerateOptions, ModelInfo } from './ai-provider.interface';
 
 export class AnthropicProvider implements AIProvider {
   private apiKey: string;
@@ -37,5 +37,21 @@ export class AnthropicProvider implements AIProvider {
 
     const block = response.content[0];
     return block.type === 'text' ? block.text : '';
+  }
+
+  async listModels(): Promise<ModelInfo[]> {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const clientOptions: { apiKey: string; baseURL?: string } = { apiKey: this.apiKey };
+    if (this.baseUrl) {
+      clientOptions.baseURL = this.baseUrl;
+    }
+    const client = new Anthropic(clientOptions);
+
+    const response = await client.models.list();
+    return response.data.map((model) => ({
+      id: model.id,
+      displayName: model.display_name,
+      createdAt: model.created_at,
+    }));
   }
 }

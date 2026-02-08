@@ -8,6 +8,13 @@ export interface GenerateOptions {
   imageMimeType?: string;
 }
 
+export interface ModelInfo {
+  id: string;
+  displayName: string;
+  createdAt?: string;
+}
+
 export interface AIProvider {
   generateContent(prompt: string, options?: GenerateOptions): Promise<string>;
+  listModels(): Promise<ModelInfo[]>;
 }

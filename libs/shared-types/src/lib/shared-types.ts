@@ -97,6 +97,18 @@ export interface CreateAiProviderConfigDto {
   baseUrl?: string;
 }
 
+export interface UpdateAiProviderConfigDto {
+  apiKey?: string;
+  model?: string;
+  baseUrl?: string;
+}
+
+export interface ModelInfoDto {
+  id: string;
+  displayName: string;
+  createdAt?: string;
+}
+
 export interface AiGenerateDto {
   prompt: string;
   provider: string;

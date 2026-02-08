@@ -157,6 +157,14 @@ pub struct CreateAiProviderConfig {
     pub base_url: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateAiProviderConfig {
+    pub api_key: Option<String>,
+    pub model: Option<String>,
+    pub base_url: Option<String>,
+}
+
 // AI Request DTOs
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

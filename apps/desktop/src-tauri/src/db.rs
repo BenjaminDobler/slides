@@ -341,6 +341,54 @@ impl Database {
         Ok(config)
     }
 
+    pub async fn get_ai_provider_config_by_id(&self, id: &str) -> AppResult<Option<AiProviderConfig>> {
+        let config = sqlx::query_as::<_, AiProviderConfig>(
+            "SELECT id, provider_name, api_key_encrypted, model, base_url, user_id, created_at, updated_at FROM ai_provider_configs WHERE id = ? AND user_id = 'local'"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(config)
+    }
+
+    pub async fn update_ai_provider_config(
+        &self,
+        id: &str,
+        model: Option<String>,
+        base_url: Option<String>,
+        api_key_encrypted: Option<String>,
+    ) -> AppResult<AiProviderConfig> {
+        let existing = self.get_ai_provider_config_by_id(id).await?
+            .ok_or_else(|| AppError::NotFound("AI config not found".to_string()))?;
+
+        let now = Utc::now();
+        let new_model = model.or(existing.model);
+        let new_base_url = base_url.or(existing.base_url);
+        let new_api_key = api_key_encrypted.unwrap_or(existing.api_key_encrypted);
+
+        sqlx::query(
+            "UPDATE ai_provider_configs SET api_key_encrypted = ?, model = ?, base_url = ?, updated_at = ? WHERE id = ?"
+        )
+        .bind(&new_api_key)
+        .bind(&new_model)
+        .bind(&new_base_url)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(AiProviderConfig {
+            id: existing.id,
+            provider_name: existing.provider_name,
+            api_key_encrypted: new_api_key,
+            model: new_model,
+            base_url: new_base_url,
+            user_id: existing.user_id,
+            created_at: existing.created_at,
+            updated_at: now,
+        })
+    }
+
     pub async fn upsert_ai_provider_config(&self, data: CreateAiProviderConfig, api_key_encrypted: String) -> AppResult<AiProviderConfig> {
         let now = Utc::now();
 
@@ -465,5 +513,66 @@ impl Database {
                 .await?;
         }
         Ok(media)
+    }
+
+    // Layout Rules
+    pub async fn create_layout_rule(
+        &self,
+        name: String,
+        display_name: String,
+        description: Option<String>,
+        priority: i32,
+        conditions: String,
+        transform: String,
+        css_content: String,
+    ) -> AppResult<LayoutRule> {
+        let id = Uuid::new_v4().to_string();
+        let now = Utc::now();
+
+        sqlx::query(
+            "INSERT INTO layout_rules (id, name, display_name, description, priority, enabled, is_default, user_id, conditions, transform, css_content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 0, 'local', ?, ?, ?, ?, ?)"
+        )
+        .bind(&id)
+        .bind(&name)
+        .bind(&display_name)
+        .bind(&description)
+        .bind(priority)
+        .bind(&conditions)
+        .bind(&transform)
+        .bind(&css_content)
+        .bind(now)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(LayoutRule {
+            id,
+            name,
+            display_name,
+            description,
+            priority,
+            enabled: true,
+            is_default: false,
+            user_id: Some("local".to_string()),
+            conditions,
+            transform,
+            css_content,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub async fn delete_layout_rule(&self, id: &str) -> AppResult<()> {
+        // Only delete non-default rules
+        let result = sqlx::query("DELETE FROM layout_rules WHERE id = ? AND is_default = 0")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(AppError::BadRequest("Cannot delete default layout rule or rule not found".to_string()));
+        }
+
+        Ok(())
     }
 }

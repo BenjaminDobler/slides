@@ -84,6 +84,14 @@
   padding: var(--space-8);
 }
 
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
 .page-title {
   font-size: var(--text-3xl);
   font-weight: 600;
@@ -95,7 +103,23 @@
 .page-subtitle {
   color: var(--text-secondary);
   font-size: var(--text-base);
-  margin-bottom: var(--space-8);
+}
+
+.btn-refresh {
+  flex-shrink: 0;
+
+  .icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Grid */

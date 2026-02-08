@@ -38,6 +38,8 @@ aes-gcm = "0.10"
 base64 = "0.22"
 rand = "0.8"
 async-trait = "0.1"
+async-stream = "0.3"
+url = "2"
 
 [profile.release]
 strip = true

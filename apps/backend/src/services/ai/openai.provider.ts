@@ -1,4 +1,4 @@
-import type { AIProvider, GenerateOptions } from './ai-provider.interface';
+import type { AIProvider, GenerateOptions, ModelInfo } from './ai-provider.interface';
 
 export class OpenAIProvider implements AIProvider {
   private apiKey: string;
@@ -39,5 +39,28 @@ export class OpenAIProvider implements AIProvider {
     });
 
     return response.choices[0]?.message?.content || '';
+  }
+
+  async listModels(): Promise<ModelInfo[]> {
+    const { default: OpenAI } = await import('openai');
+    const clientOptions: { apiKey: string; baseURL?: string } = { apiKey: this.apiKey };
+    if (this.baseUrl) {
+      clientOptions.baseURL = this.baseUrl;
+    }
+    const client = new OpenAI(clientOptions);
+
+    const models: ModelInfo[] = [];
+    // Iterate through paginated results
+    for await (const model of client.models.list()) {
+      // Filter to only include chat models (gpt-*, o1*, o3*)
+      if (model.id.startsWith('gpt-') || model.id.startsWith('o1') || model.id.startsWith('o3')) {
+        models.push({
+          id: model.id,
+          displayName: model.id,
+          createdAt: model.created ? new Date(model.created * 1000).toISOString() : undefined,
+        });
+      }
+    }
+    return models;
   }
 }
