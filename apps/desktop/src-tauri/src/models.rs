@@ -37,6 +37,7 @@ pub struct Theme {
     pub display_name: String,
     pub css_content: String,
     pub is_default: bool,
+    pub center_content: bool,
     pub user_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

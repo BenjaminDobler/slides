@@ -44,6 +44,7 @@ impl Database {
                 display_name TEXT NOT NULL,
                 css_content TEXT NOT NULL,
                 is_default INTEGER NOT NULL DEFAULT 0,
+                center_content INTEGER NOT NULL DEFAULT 1,
                 user_id TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
@@ -92,8 +93,29 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Run migrations for schema updates
+        self.run_migrations().await?;
+
         // Seed default themes if none exist
         self.seed_defaults().await?;
+
+        Ok(())
+    }
+
+    async fn run_migrations(&self) -> AppResult<()> {
+        // Add center_content column to themes if it doesn't exist
+        // SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we check first
+        let columns: Vec<(String,)> = sqlx::query_as(
+            "SELECT name FROM pragma_table_info('themes') WHERE name = 'center_content'"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if columns.is_empty() {
+            sqlx::query("ALTER TABLE themes ADD COLUMN center_content INTEGER NOT NULL DEFAULT 1")
+                .execute(&self.pool)
+                .await?;
+        }
 
         Ok(())
     }
@@ -119,6 +141,7 @@ impl Database {
     }
 
     async fn seed_themes(&self) -> AppResult<()> {
+        // (name, display_name, css, is_default, center_content)
         let themes = vec![
             ("default", "Default", r#"
 .slide-content[data-theme="default"], [data-theme="default"] .slide-content, [data-theme="default"] .slide {
@@ -128,7 +151,7 @@ impl Database {
 [data-theme="default"] h1, [data-theme="default"] h2, [data-theme="default"] h3 {
   font-family: 'Poppins', sans-serif; color: var(--slide-heading);
 }
-"#, true),
+"#, true, true),
             ("dark", "Dark Mode", r#"
 .slide-content[data-theme="dark"], [data-theme="dark"] .slide-content, [data-theme="dark"] .slide {
   --slide-bg: #1e1e2e; --slide-text: #cdd6f4; --slide-heading: #cba6f7; --slide-accent: #89b4fa;
@@ -137,19 +160,20 @@ impl Database {
 [data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3 {
   font-family: 'Poppins', sans-serif; color: var(--slide-heading);
 }
-"#, false),
+"#, false, true),
         ];
 
-        for (name, display_name, css, is_default) in themes {
+        for (name, display_name, css, is_default, center_content) in themes {
             let now = Utc::now().to_rfc3339();
             sqlx::query(
-                "INSERT INTO themes (id, name, display_name, css_content, is_default, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO themes (id, name, display_name, css_content, is_default, center_content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(Uuid::new_v4().to_string())
             .bind(name)
             .bind(display_name)
             .bind(css)
             .bind(is_default)
+            .bind(center_content)
             .bind(&now)
             .bind(&now)
             .execute(&self.pool)
@@ -280,7 +304,7 @@ impl Database {
     // Themes
     pub async fn list_themes(&self) -> AppResult<Vec<Theme>> {
         let themes = sqlx::query_as::<_, Theme>(
-            "SELECT id, name, display_name, css_content, is_default, user_id, created_at, updated_at FROM themes ORDER BY is_default DESC, name"
+            "SELECT id, name, display_name, css_content, is_default, center_content, user_id, created_at, updated_at FROM themes ORDER BY is_default DESC, name"
         )
         .fetch_all(&self.pool)
         .await?;
