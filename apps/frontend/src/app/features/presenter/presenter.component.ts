@@ -48,6 +48,33 @@ export class PresenterComponent implements OnInit, OnDestroy {
   outgoingScale = signal(1);
   outgoingTransformOrigin = signal('top center');
 
+  // Zoom state - using translate + scale for smooth zooming to any point
+  private readonly ZOOM_SCALES = [1, 1.5, 2.5, 4];
+  private readonly CLICK_DELAY = 250; // ms to wait to distinguish click from double-click
+  private clickTimeout: any = null;
+  zoomLevel = signal(0); // Index into ZOOM_SCALES
+  panX = signal(0); // Translation X in pixels
+  panY = signal(0); // Translation Y in pixels
+
+  // Drag state for panning
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private panStartX = 0;
+  private panStartY = 0;
+  private hasDragged = false; // Track if actual dragging occurred (to distinguish from click)
+
+  zoomScale = computed(() => this.ZOOM_SCALES[this.zoomLevel()]);
+  zoomTransform = computed(() => {
+    const scale = this.zoomScale();
+    const x = this.panX();
+    const y = this.panY();
+    if (scale === 1 && x === 0 && y === 0) return 'none';
+    return `translate(${x}px, ${y}px) scale(${scale})`;
+  });
+  isZoomed = computed(() => this.zoomLevel() > 0);
+  isDraggingSignal = signal(false);
+
   // Get centerContent from the current theme
   centerContent = computed(() => this.themeService.centerContent());
 
@@ -109,6 +136,20 @@ export class PresenterComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent) {
     if (this.animating()) return;
+
+    // If zoomed, Escape resets zoom instead of exiting
+    if (event.key === 'Escape') {
+      if (this.isZoomed()) {
+        this.resetZoom();
+      } else {
+        this.router.navigate(['/presentations']);
+      }
+      return;
+    }
+
+    // Don't allow navigation while zoomed
+    if (this.isZoomed()) return;
+
     switch (event.key) {
       case 'ArrowRight':
       case 'ArrowDown':
@@ -118,9 +159,6 @@ export class PresenterComponent implements OnInit, OnDestroy {
       case 'ArrowLeft':
       case 'ArrowUp':
         this.prev();
-        break;
-      case 'Escape':
-        this.router.navigate(['/presentations']);
         break;
     }
   }
@@ -211,6 +249,9 @@ export class PresenterComponent implements OnInit, OnDestroy {
   }
 
   private async navigate(direction: 'forward' | 'back') {
+    // Reset zoom before navigating
+    this.resetZoom();
+
     const t = this.transition();
     if (t === 'none') {
       // No animation - slide-renderer updates automatically via input binding
@@ -331,5 +372,186 @@ export class PresenterComponent implements OnInit, OnDestroy {
     if (this.currentIndex() > 0) {
       this.navigate('back');
     }
+  }
+
+  // Zoom handlers
+  onSlideDoubleClick(event: MouseEvent) {
+    if (this.animating()) return;
+
+    // Prevent text selection on double-click
+    event.preventDefault();
+
+    // Cancel any pending single-click action
+    if (this.clickTimeout) {
+      clearTimeout(this.clickTimeout);
+      this.clickTimeout = null;
+    }
+
+    const currentLevel = this.zoomLevel();
+    if (currentLevel >= this.ZOOM_SCALES.length - 1) return; // Already at max zoom
+
+    const slideEl = event.currentTarget as HTMLElement;
+    const rect = slideEl.getBoundingClientRect();
+
+    // Click position as proportion of visual element (0-1)
+    const clickPropX = (event.clientX - rect.left) / rect.width;
+    const clickPropY = (event.clientY - rect.top) / rect.height;
+
+    // Convert to slide coordinates (0-960, 0-600)
+    const currentScale = this.zoomScale();
+    // The visual width = 960 * currentScale, so slide coord = proportion * 960 * currentScale / currentScale = proportion * 960
+    // But we also need to account for current pan offset
+    const currentPanX = this.panX();
+    const currentPanY = this.panY();
+
+    // Visual element shows slide from (-panX/currentScale) to (-panX/currentScale + 960)
+    // Click at proportion P shows slide coordinate: -panX/currentScale + P * (960)
+    // Wait, that's not right either...
+
+    // Let's think step by step:
+    // The slide is 960x600. With transform translate(panX, panY) scale(scale):
+    // - Slide point (0,0) appears at visual position (panX, panY) relative to element origin
+    // - Slide point (sx, sy) appears at (panX + sx*scale, panY + sy*scale)
+    // The bounding rect has width = 960*scale (the scaled slide size)
+    // So clickX relative to rect.left = panX + slideX*scale (if the element origin equals rect.left when no transform)
+    // Therefore: slideX = (clickX - panX) / scale where clickX = event.clientX - rect.left + offset...
+
+    // Actually the rect.left IS the visual left edge of the transformed content.
+    // With transform-origin: 0 0, the (0,0) of the slide maps to (panX, panY) relative to where the element would be without transform.
+    // The rect reflects where the content actually appears.
+
+    // Get the slide-layer's position (parent of zoom-container)
+    const slideLayer = slideEl.parentElement;
+    if (!slideLayer) return;
+    const layerRect = slideLayer.getBoundingClientRect();
+
+    // Click position relative to slide-layer in screen pixels
+    const screenX = event.clientX - layerRect.left;
+    const screenY = event.clientY - layerRect.top;
+
+    // Convert to internal coordinates (960x600 space) by dividing by slideScale
+    const scale = this.slideScale();
+    const internalX = screenX / scale;
+    const internalY = screenY / scale;
+
+    // With current zoom transform, what slide point is at this internal position?
+    // internalPos = panX + slideX * zoomScale
+    // slideX = (internalPos - panX) / zoomScale
+    const slideX = (internalX - currentPanX) / currentScale;
+    const slideY = (internalY - currentPanY) / currentScale;
+
+    // New zoom scale
+    const newLevel = currentLevel + 1;
+    const newScale = this.ZOOM_SCALES[newLevel];
+
+    // Calculate new pan so slide point stays at same internal position
+    // internalX = newPanX + slideX * newScale
+    const newPanX = internalX - slideX * newScale;
+    const newPanY = internalY - slideY * newScale;
+
+    // Apply new transform
+    this.panX.set(newPanX);
+    this.panY.set(newPanY);
+    this.zoomLevel.set(newLevel);
+  }
+
+  onSlideClick(event: MouseEvent) {
+    if (this.animating()) return;
+
+    // Don't zoom out if we were dragging
+    if (this.hasDragged) {
+      this.hasDragged = false;
+      return;
+    }
+
+    // Only handle click to zoom out when already zoomed
+    if (this.isZoomed()) {
+      event.stopPropagation();
+
+      // Delay the zoom-out to see if this is part of a double-click
+      if (this.clickTimeout) {
+        clearTimeout(this.clickTimeout);
+      }
+      this.clickTimeout = setTimeout(() => {
+        this.clickTimeout = null;
+        // Reset zoom completely with one click
+        this.resetZoom();
+      }, this.CLICK_DELAY);
+    }
+  }
+
+  // Drag handlers for panning when zoomed
+  onSlideMouseDown(event: MouseEvent) {
+    if (!this.isZoomed() || this.animating()) return;
+
+    this.isDragging = true;
+    this.isDraggingSignal.set(true);
+    this.hasDragged = false;
+    this.dragStartX = event.clientX;
+    this.dragStartY = event.clientY;
+    this.panStartX = this.panX();
+    this.panStartY = this.panY();
+
+    event.preventDefault(); // Prevent text selection while dragging
+  }
+
+  onSlideMouseMove(event: MouseEvent) {
+    if (!this.isDragging) return;
+
+    const deltaX = event.clientX - this.dragStartX;
+    const deltaY = event.clientY - this.dragStartY;
+
+    // Consider it a drag if moved more than 5 pixels
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      this.hasDragged = true;
+    }
+
+    // Convert screen delta to internal coordinates
+    const scale = this.slideScale();
+    const internalDeltaX = deltaX / scale;
+    const internalDeltaY = deltaY / scale;
+
+    // Calculate new pan with bounds checking
+    const zoomScale = this.zoomScale();
+    const newPanX = this.clampPan(this.panStartX + internalDeltaX, 960, zoomScale);
+    const newPanY = this.clampPan(this.panStartY + internalDeltaY, 600, zoomScale);
+
+    this.panX.set(newPanX);
+    this.panY.set(newPanY);
+  }
+
+  onSlideMouseUp() {
+    this.isDragging = false;
+    this.isDraggingSignal.set(false);
+  }
+
+  onSlideMouseLeave() {
+    this.isDragging = false;
+    this.isDraggingSignal.set(false);
+  }
+
+  private clampPan(pan: number, size: number, zoomScale: number): number {
+    // The slide content ranges from 0 to size (960 or 600)
+    // After zoom, the visible area is size/zoomScale
+    // Pan should keep the visible area within bounds
+
+    // Maximum pan (showing the left/top edge of content)
+    const maxPan = 0;
+    // Minimum pan (showing the right/bottom edge of content)
+    const minPan = size - size * zoomScale;
+
+    return Math.max(minPan, Math.min(maxPan, pan));
+  }
+
+  private resetZoom() {
+    if (this.clickTimeout) {
+      clearTimeout(this.clickTimeout);
+      this.clickTimeout = null;
+    }
+    this.isDragging = false;
+    this.hasDragged = false;
+    this.zoomLevel.set(0);
+    this.panX.set(0);
+    this.panY.set(0);
   }
 }

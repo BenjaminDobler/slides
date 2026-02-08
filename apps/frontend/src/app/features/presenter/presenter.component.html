@@ -8,9 +8,20 @@
         </div>
       </div>
     }
-    <!-- Current slide -->
+    <!-- Current slide with zoom support -->
     <div class="slide-layer" #slideLayer [class]="'slide-layer ' + incomingClass()">
-      <div class="slide">
+      <div
+        class="slide zoom-container"
+        [class.zoomed]="isZoomed()"
+        [class.dragging]="isDraggingSignal()"
+        [style.transform]="zoomTransform()"
+        (dblclick)="onSlideDoubleClick($event)"
+        (click)="onSlideClick($event)"
+        (mousedown)="onSlideMouseDown($event)"
+        (mousemove)="onSlideMouseMove($event)"
+        (mouseup)="onSlideMouseUp()"
+        (mouseleave)="onSlideMouseLeave()"
+      >
         <app-slide-renderer #slideRenderer [html]="currentSlide()?.html || ''" [autoScale]="true" [centerContent]="centerContent()" />
       </div>
     </div>

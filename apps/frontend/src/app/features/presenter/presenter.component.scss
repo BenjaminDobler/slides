@@ -133,3 +133,29 @@
   100% { opacity: 0; transform: translate(5px, -5px) scale(1.02); filter: hue-rotate(0deg); clip-path: inset(0); }
 }
 
+/* Interactive zoom feature */
+.zoom-container {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: 0 0; /* Fixed origin for translate + scale approach */
+  cursor: default;
+  user-select: none; /* Prevent text selection during zoom interactions */
+
+  &.zoomed {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &.dragging {
+    transition: none; /* Instant response while dragging */
+    cursor: grabbing;
+  }
+}
+
+/* Visual indicator when zoomed */
+.slide-layer:has(.zoomed) {
+  z-index: 100;
+}
+
