@@ -23,14 +23,16 @@ pub trait AIProvider: Send + Sync {
 pub struct AnthropicProvider {
     api_key: String,
     base_url: String,
+    default_model: String,
     client: Client,
 }
 
 impl AnthropicProvider {
-    pub fn new(api_key: String, base_url: Option<String>) -> Self {
+    pub fn new(api_key: String, base_url: Option<String>, model: Option<String>) -> Self {
         Self {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://api.anthropic.com".to_string()),
+            default_model: model.unwrap_or_else(|| "claude-sonnet-4-20250514".to_string()),
             client: Client::new(),
         }
     }
@@ -97,7 +99,7 @@ impl AIProvider for AnthropicProvider {
         content.push(AnthropicContent::Text { text: prompt.to_string() });
 
         let request = AnthropicRequest {
-            model: options.model.unwrap_or_else(|| "claude-sonnet-4-20250514".to_string()),
+            model: options.model.unwrap_or_else(|| self.default_model.clone()),
             max_tokens: options.max_tokens.unwrap_or(2000),
             system: options.system_prompt.unwrap_or_else(|| {
                 "You are a presentation assistant that generates markdown slides separated by ---.".to_string()
@@ -146,14 +148,16 @@ impl AIProvider for AnthropicProvider {
 pub struct OpenAIProvider {
     api_key: String,
     base_url: String,
+    default_model: String,
     client: Client,
 }
 
 impl OpenAIProvider {
-    pub fn new(api_key: String, base_url: Option<String>) -> Self {
+    pub fn new(api_key: String, base_url: Option<String>, model: Option<String>) -> Self {
         Self {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://api.openai.com".to_string()),
+            default_model: model.unwrap_or_else(|| "gpt-4o".to_string()),
             client: Client::new(),
         }
     }
@@ -202,7 +206,7 @@ impl AIProvider for OpenAIProvider {
         }
 
         let request = OpenAIRequest {
-            model: options.model.unwrap_or_else(|| "gpt-4o".to_string()),
+            model: options.model.unwrap_or_else(|| self.default_model.clone()),
             messages: vec![
                 OpenAIMessage {
                     role: "system".to_string(),
@@ -255,14 +259,16 @@ impl AIProvider for OpenAIProvider {
 pub struct GeminiProvider {
     api_key: String,
     base_url: String,
+    default_model: String,
     client: Client,
 }
 
 impl GeminiProvider {
-    pub fn new(api_key: String, base_url: Option<String>) -> Self {
+    pub fn new(api_key: String, base_url: Option<String>, model: Option<String>) -> Self {
         Self {
             api_key,
             base_url: base_url.unwrap_or_else(|| "https://generativelanguage.googleapis.com".to_string()),
+            default_model: model.unwrap_or_else(|| "gemini-2.0-flash".to_string()),
             client: Client::new(),
         }
     }
@@ -331,7 +337,7 @@ struct GeminiResponsePart {
 #[async_trait]
 impl AIProvider for GeminiProvider {
     async fn generate_content(&self, prompt: &str, options: GenerateOptions) -> AppResult<String> {
-        let model = options.model.as_deref().unwrap_or("gemini-2.0-flash");
+        let model = options.model.as_deref().unwrap_or(&self.default_model);
 
         let mut parts = vec![GeminiPart::Text { text: prompt.to_string() }];
 
@@ -402,11 +408,11 @@ impl AIProvider for GeminiProvider {
 }
 
 // Provider Factory
-pub fn create_provider(provider_name: &str, api_key: String, base_url: Option<String>) -> AppResult<Box<dyn AIProvider>> {
+pub fn create_provider(provider_name: &str, api_key: String, base_url: Option<String>, model: Option<String>) -> AppResult<Box<dyn AIProvider>> {
     match provider_name {
-        "anthropic" => Ok(Box::new(AnthropicProvider::new(api_key, base_url))),
-        "openai" => Ok(Box::new(OpenAIProvider::new(api_key, base_url))),
-        "gemini" => Ok(Box::new(GeminiProvider::new(api_key, base_url))),
+        "anthropic" => Ok(Box::new(AnthropicProvider::new(api_key, base_url, model))),
+        "openai" => Ok(Box::new(OpenAIProvider::new(api_key, base_url, model))),
+        "gemini" => Ok(Box::new(GeminiProvider::new(api_key, base_url, model))),
         _ => Err(AppError::BadRequest(format!("Unknown AI provider: {}", provider_name))),
     }
 }

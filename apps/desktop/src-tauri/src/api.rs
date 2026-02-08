@@ -330,7 +330,7 @@ async fn get_provider_for_request(state: &SharedState, provider_name: &str) -> A
         .ok_or_else(|| AppError::BadRequest(format!("No {} configuration found. Add your API key in settings.", provider_name)))?;
 
     let api_key = decrypt(&config.api_key_encrypted)?;
-    create_provider(provider_name, api_key, config.base_url)
+    create_provider(provider_name, api_key, config.base_url, config.model)
 }
 
 async fn ai_generate(

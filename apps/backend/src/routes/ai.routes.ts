@@ -43,7 +43,7 @@ async function getProviderForUser(userId: string, providerName: string) {
     throw new Error(`No ${providerName} configuration found. Add your API key in settings.`);
   }
   const apiKey = decrypt(cfg.apiKeyEncrypted);
-  return createAIProvider(providerName, apiKey, cfg.baseUrl ?? undefined);
+  return createAIProvider(providerName, apiKey, cfg.baseUrl ?? undefined, cfg.model ?? undefined);
 }
 
 router.post('/generate', async (req: AuthRequest, res: Response) => {

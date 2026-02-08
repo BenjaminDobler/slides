@@ -3,10 +3,12 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
   private baseUrl?: string;
+  private defaultModel: string;
 
-  constructor(apiKey: string, baseUrl?: string) {
+  constructor(apiKey: string, baseUrl?: string, model?: string) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+    this.defaultModel = model || 'gemini-2.0-flash';
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
@@ -16,7 +18,7 @@ export class GeminiProvider implements AIProvider {
     const genAI = new GoogleGenerativeAI(this.apiKey);
 
     const model = genAI.getGenerativeModel({
-      model: options?.model || 'gemini-2.0-flash',
+      model: options?.model || this.defaultModel,
       systemInstruction: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.',
     });
 

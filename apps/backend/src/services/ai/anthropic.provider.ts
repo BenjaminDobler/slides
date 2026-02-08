@@ -3,10 +3,12 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 export class AnthropicProvider implements AIProvider {
   private apiKey: string;
   private baseUrl?: string;
+  private defaultModel: string;
 
-  constructor(apiKey: string, baseUrl?: string) {
+  constructor(apiKey: string, baseUrl?: string, model?: string) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+    this.defaultModel = model || 'claude-sonnet-4-20250514';
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
@@ -27,7 +29,7 @@ export class AnthropicProvider implements AIProvider {
     userContent.push({ type: 'text', text: prompt });
 
     const response = await client.messages.create({
-      model: options?.model || 'claude-sonnet-4-20250514',
+      model: options?.model || this.defaultModel,
       max_tokens: options?.maxTokens ?? 2000,
       system: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.',
       messages: [{ role: 'user', content: userContent }],

@@ -3,10 +3,12 @@ import type { AIProvider, GenerateOptions } from './ai-provider.interface';
 export class OpenAIProvider implements AIProvider {
   private apiKey: string;
   private baseUrl?: string;
+  private defaultModel: string;
 
-  constructor(apiKey: string, baseUrl?: string) {
+  constructor(apiKey: string, baseUrl?: string, model?: string) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+    this.defaultModel = model || 'gpt-4o';
   }
 
   async generateContent(prompt: string, options?: GenerateOptions): Promise<string> {
@@ -27,7 +29,7 @@ export class OpenAIProvider implements AIProvider {
     }
 
     const response = await client.chat.completions.create({
-      model: options?.model || 'gpt-4o',
+      model: options?.model || this.defaultModel,
       messages: [
         { role: 'system', content: options?.systemPrompt || 'You are a presentation assistant that generates markdown slides separated by ---.' },
         { role: 'user', content: userContent },
