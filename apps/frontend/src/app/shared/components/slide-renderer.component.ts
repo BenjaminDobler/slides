@@ -19,7 +19,7 @@ import { MermaidService } from '../../core/services/mermaid.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="slide-content">
+    <div class="slide-content" [class.scaled]="isScaled()">
       <div
         class="slide-content-inner"
         [class.single-card-centered]="isSingleCardCentered()"
@@ -45,6 +45,11 @@ import { MermaidService } from '../../core/services/mermaid.service';
       flex-direction: column;
       justify-content: center;
       overflow: hidden;
+    }
+
+    /* When content is scaled, align to top so transform-origin: top works correctly */
+    .slide-content.scaled {
+      justify-content: flex-start;
     }
 
     .slide-content-inner {
@@ -94,6 +99,10 @@ export class SlideRendererComponent implements OnChanges, AfterViewInit, AfterVi
     const scale = this.contentScale();
     const autoScale = this._autoScale();
     return autoScale && scale < 1 ? `scale(${scale})` : 'none';
+  });
+
+  isScaled = computed(() => {
+    return this._autoScale() && this.contentScale() < 1;
   });
 
   transformOrigin = computed(() => {
