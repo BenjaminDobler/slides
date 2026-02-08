@@ -613,8 +613,8 @@ html, body {
 }
 /* Inline code */
 .slide-content code {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.15em 0.4em;
+  // background: rgba(255, 255, 255, 0.1);
+  // padding: 0.15em 0.4em;
   border-radius: 4px;
   font-size: 0.85em;
   font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
@@ -665,11 +665,18 @@ html, body {
 [data-theme="minimal"] .slide-content pre.hljs .hljs-built_in,
 [data-theme="corporate"] .slide-content pre.hljs .hljs-built_in,
 [data-theme="lavender"] .slide-content pre.hljs .hljs-built_in { color: #e36209; }
-[data-theme="default"] .slide-content code,
-[data-theme="minimal"] .slide-content code,
-[data-theme="corporate"] .slide-content code,
-[data-theme="lavender"] .slide-content code {
+[data-theme="default"] .slide-content code:not(.language-mermaid),
+[data-theme="minimal"] .slide-content code:not(.language-mermaid),
+[data-theme="corporate"] .slide-content code:not(.language-mermaid),
+[data-theme="lavender"] .slide-content code:not(.language-mermaid) {
   background: rgba(0, 0, 0, 0.06);
+}
+
+/* Exclude mermaid code from inline code styling */
+.slide-content .mermaid code,
+.slide-content code.language-mermaid {
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 /* ============================================
