@@ -11,7 +11,7 @@
     <!-- Current slide -->
     <div class="slide-layer" #slideLayer [class]="'slide-layer ' + incomingClass()">
       <div class="slide">
-        <app-slide-renderer #slideRenderer [html]="currentSlide()?.html || ''" [autoScale]="true" />
+        <app-slide-renderer #slideRenderer [html]="currentSlide()?.html || ''" [autoScale]="true" [centerContent]="centerContent()" />
       </div>
     </div>
   </div>

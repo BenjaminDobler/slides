@@ -48,6 +48,9 @@ export class PresenterComponent implements OnInit, OnDestroy {
   outgoingScale = signal(1);
   outgoingTransformOrigin = signal('top center');
 
+  // Get centerContent from the current theme
+  centerContent = computed(() => this.themeService.centerContent());
+
   private animationTimeout: any;
 
   currentSlide = computed(() => this.slides()[this.currentIndex()] || null);

@@ -502,10 +502,22 @@ html, body {
 
 /* Center standalone images */
 .slide-content > p:has(> img:only-child),
-.slide-content > figure {
+.slide-content > figure,
+.slide-content-inner > p:has(> img:only-child),
+.slide-content-inner > figure {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* When slide has only a single image (no other significant content), center it fully */
+.slide-content-inner:has(> p:only-child > img:only-child),
+.slide-content-inner:has(> figure:only-child) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 /* Slide lists - no margins, spacing via gap */

@@ -26,6 +26,7 @@
             <app-slide-renderer
               [html]="slide.html"
               [autoScale]="autoScaleEnabled()"
+              [centerContent]="centerContent()"
               [style.transform]="'scale(' + thumbScale() + ')'"
               [style.transform-origin]="'top left'"
               [style.pointer-events]="'none'"

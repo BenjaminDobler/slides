@@ -38,6 +38,7 @@ export interface ThemeDto {
   name: string;
   displayName: string;
   cssContent: string;
+  centerContent?: boolean;
   isDefault?: boolean;
   userId?: string | null;
 }
@@ -46,11 +47,13 @@ export interface CreateThemeDto {
   name: string;
   displayName: string;
   cssContent: string;
+  centerContent?: boolean;
 }
 
 export interface UpdateThemeDto {
   displayName?: string;
   cssContent?: string;
+  centerContent?: boolean;
 }
 
 export interface AiGenerateThemeDto {

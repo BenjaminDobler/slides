@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', async (_req: Request, res: Response) => {
   const themes = await prisma.theme.findMany({
-    select: { id: true, name: true, displayName: true, cssContent: true, isDefault: true, userId: true },
+    select: { id: true, name: true, displayName: true, cssContent: true, centerContent: true, isDefault: true, userId: true },
     orderBy: { name: 'asc' },
   });
   res.json(themes);
@@ -25,9 +25,9 @@ router.get('/:name', async (req: Request, res: Response) => {
 
 router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { name, displayName, cssContent } = req.body;
+    const { name, displayName, cssContent, centerContent } = req.body;
     const theme = await prisma.theme.create({
-      data: { name, displayName, cssContent, userId: req.userId! },
+      data: { name, displayName, cssContent, centerContent: centerContent ?? true, userId: req.userId! },
     });
     res.status(201).json(theme);
   } catch (err: any) {
@@ -50,10 +50,14 @@ router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
       res.status(403).json({ error: 'Not your theme' });
       return;
     }
-    const { displayName, cssContent } = req.body;
+    const { displayName, cssContent, centerContent } = req.body;
     const theme = await prisma.theme.update({
       where: { id: req.params.id },
-      data: { ...(displayName && { displayName }), ...(cssContent && { cssContent }) },
+      data: {
+        ...(displayName && { displayName }),
+        ...(cssContent && { cssContent }),
+        ...(centerContent !== undefined && { centerContent }),
+      },
     });
     res.json(theme);
   } catch (err: any) {

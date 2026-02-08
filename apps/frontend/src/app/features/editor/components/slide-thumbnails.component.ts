@@ -1,7 +1,8 @@
-import { Component, output, signal, Input, ElementRef, ViewChild, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, output, signal, Input, ElementRef, ViewChild, AfterViewInit, AfterViewChecked, OnDestroy, HostListener, inject, ChangeDetectorRef, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { ParsedSlide } from '@slides/markdown-parser';
 import { MediaLibraryComponent } from './media-library.component';
+import { ThemeService } from '../../../core/services/theme.service';
 import { SlideRendererComponent } from '../../../shared/components/slide-renderer.component';
 
 @Component({
@@ -13,6 +14,10 @@ import { SlideRendererComponent } from '../../../shared/components/slide-rendere
 })
 export class SlideThumbnailsComponent implements AfterViewInit, AfterViewChecked, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
+  private themeService = inject(ThemeService);
+
+  // Get centerContent from the current theme
+  centerContent = computed(() => this.themeService.centerContent());
 
   @ViewChild('thumbList') thumbListEl!: ElementRef<HTMLDivElement>;
   thumbScale = signal(0.19);

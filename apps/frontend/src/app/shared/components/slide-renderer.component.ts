@@ -19,11 +19,12 @@ import { MermaidService } from '../../core/services/mermaid.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="slide-content" [class.scaled]="isScaled()">
+    <div class="slide-content">
       <div
         class="slide-content-inner"
         [class.single-card-centered]="isSingleCardCentered()"
         #slideContent
+        [style.top]="contentTop()"
         [style.transform]="contentTransform()"
         [style.transform-origin]="transformOrigin()"
         [style.--image-top]="imageTopPosition()"
@@ -41,20 +42,16 @@ import { MermaidService } from '../../core/services/mermaid.service';
     .slide-content {
       width: 960px;
       height: 600px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      position: relative;
       overflow: hidden;
     }
 
-    /* When content is scaled, align to top so transform-origin: top works correctly */
-    .slide-content.scaled {
-      justify-content: flex-start;
-    }
-
     .slide-content-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 960px;
-      min-height: 0;
+      margin: 0;
       padding: 1.5rem 2.5rem;
       box-sizing: border-box;
       font-size: 1.5rem;
@@ -87,27 +84,62 @@ export class SlideRendererComponent implements OnChanges, AfterViewInit, AfterVi
   get autoScale(): boolean {
     return this._autoScale();
   }
+  @Input() set centerContent(value: boolean) {
+    this._centerContent.set(value);
+  }
+  get centerContent(): boolean {
+    return this._centerContent();
+  }
 
   private _autoScale = signal(true);
+  private _centerContent = signal(true); // Center content vertically when it fits (no scaling)
   contentScale = signal(1);
   isSingleCardCentered = signal(false);
   private needsMermaidRender = false;
   private needsContentScale = false;
   private viewInitialized = false;
 
+  // Combined transform: scale when needed, optionally center when not scaling
   contentTransform = computed(() => {
     const scale = this.contentScale();
     const autoScale = this._autoScale();
-    return autoScale && scale < 1 ? `scale(${scale})` : 'none';
-  });
+    const centerContent = this._centerContent();
 
-  isScaled = computed(() => {
-    return this._autoScale() && this.contentScale() < 1;
+    if (autoScale && scale < 1) {
+      return `scale(${scale})`; // Scale from top
+    }
+    if (centerContent) {
+      return 'translateY(-50%)'; // Center vertically when no scaling
+    }
+    return 'none'; // Top-aligned, no transform
   });
 
   transformOrigin = computed(() => {
     const autoScale = this._autoScale();
-    return autoScale && this.contentScale() < 1 ? 'top center' : null;
+    const centerContent = this._centerContent();
+
+    if (autoScale && this.contentScale() < 1) {
+      return 'top center'; // Scale from top-center to keep content horizontally centered
+    }
+    if (centerContent) {
+      return 'center center';
+    }
+    return 'top left';
+  });
+
+  // Position content: centered when no scaling (and centerContent=true), otherwise top-aligned
+  contentTop = computed(() => {
+    const scale = this.contentScale();
+    const autoScale = this._autoScale();
+    const centerContent = this._centerContent();
+
+    if (autoScale && scale < 1) {
+      return '0'; // Top-aligned when scaling
+    }
+    if (centerContent) {
+      return '50%'; // Centered when no scaling
+    }
+    return '0'; // Top-aligned
   });
 
   // Calculate image top position to appear centered in the 600px viewport after scaling
@@ -208,7 +240,11 @@ export class SlideRendererComponent implements OnChanges, AfterViewInit, AfterVi
       return;
     }
 
-    // Measure content size
+    // Temporarily remove transform to measure true content height
+    const currentTransform = el.style.transform;
+    el.style.transform = 'none';
+
+    // Use scrollHeight for content measurement (with absolute positioning this is accurate)
     const contentHeight = el.scrollHeight;
     const slideH = SlideRendererComponent.SLIDE_H;
 
@@ -220,6 +256,9 @@ export class SlideRendererComponent implements OnChanges, AfterViewInit, AfterVi
     } else {
       this.contentScale.set(1);
     }
+
+    // Restore transform (will be updated by Angular binding)
+    el.style.transform = currentTransform;
   }
 
   /** Public method to trigger re-render (useful after theme changes) */

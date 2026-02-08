@@ -10,6 +10,7 @@ const themes = [
     name: 'default',
     displayName: 'Default',
     isDefault: true,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="default"], [data-theme="default"] .slide-content, [data-theme="default"] .slide {
   --slide-bg: #ffffff; --slide-text: #333333; --slide-heading: #1a1a1a; --slide-accent: #0066cc;
@@ -26,6 +27,7 @@ const themes = [
     name: 'dark',
     displayName: 'Dark Mode',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="dark"], [data-theme="dark"] .slide-content, [data-theme="dark"] .slide {
   --slide-bg: #1e1e2e; --slide-text: #cdd6f4; --slide-heading: #cba6f7; --slide-accent: #89b4fa;
@@ -42,6 +44,7 @@ const themes = [
     name: 'minimal',
     displayName: 'Minimal',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="minimal"], [data-theme="minimal"] .slide-content, [data-theme="minimal"] .slide {
   --slide-bg: #fafafa; --slide-text: #222; --slide-heading: #000; --slide-accent: #555;
@@ -56,6 +59,7 @@ const themes = [
     name: 'corporate',
     displayName: 'Corporate',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="corporate"], [data-theme="corporate"] .slide-content, [data-theme="corporate"] .slide {
   --slide-bg: #ffffff; --slide-text: #2c3e50; --slide-heading: #1a365d; --slide-accent: #2b6cb0;
@@ -72,6 +76,7 @@ const themes = [
     name: 'creative',
     displayName: 'Creative',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="creative"], [data-theme="creative"] .slide-content, [data-theme="creative"] .slide {
   --slide-bg: #0f0c29; --slide-text: #e0e0e0; --slide-heading: #f857a6; --slide-accent: #ff5858;
@@ -89,6 +94,7 @@ const themes = [
     name: 'ocean',
     displayName: 'Ocean',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="ocean"], [data-theme="ocean"] .slide-content, [data-theme="ocean"] .slide {
   --slide-bg: #0b1929; --slide-text: #b2c8df; --slide-heading: #5eead4; --slide-accent: #38bdf8;
@@ -106,6 +112,7 @@ const themes = [
     name: 'sunset',
     displayName: 'Sunset',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="sunset"], [data-theme="sunset"] .slide-content, [data-theme="sunset"] .slide {
   --slide-bg: #1c1017; --slide-text: #e8d5ce; --slide-heading: #fb923c; --slide-accent: #f472b6;
@@ -123,6 +130,7 @@ const themes = [
     name: 'forest',
     displayName: 'Forest',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="forest"], [data-theme="forest"] .slide-content, [data-theme="forest"] .slide {
   --slide-bg: #0f1a0f; --slide-text: #c8d6c0; --slide-heading: #4ade80; --slide-accent: #86efac;
@@ -140,6 +148,7 @@ const themes = [
     name: 'noir',
     displayName: 'Noir',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="noir"], [data-theme="noir"] .slide-content, [data-theme="noir"] .slide {
   --slide-bg: #0a0a0a; --slide-text: #a3a3a3; --slide-heading: #fafafa; --slide-accent: #e5e5e5;
@@ -158,6 +167,7 @@ const themes = [
     name: 'lavender',
     displayName: 'Lavender',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="lavender"], [data-theme="lavender"] .slide-content, [data-theme="lavender"] .slide {
   --slide-bg: #faf5ff; --slide-text: #4a3563; --slide-heading: #7c3aed; --slide-accent: #a78bfa;
@@ -175,6 +185,7 @@ const themes = [
     name: 'cyberpunk',
     displayName: 'Cyberpunk',
     isDefault: false,
+    centerContent: true,
     cssContent: `
 .slide-content[data-theme="cyberpunk"], [data-theme="cyberpunk"] .slide-content, [data-theme="cyberpunk"] .slide {
   --slide-bg: #0a0014; --slide-text: #d4d4d8; --slide-heading: #e4ff1a; --slide-accent: #06b6d4;
@@ -415,7 +426,7 @@ async function main() {
   for (const theme of themes) {
     await prisma.theme.upsert({
       where: { name: theme.name },
-      update: { cssContent: theme.cssContent, displayName: theme.displayName },
+      update: { cssContent: theme.cssContent, displayName: theme.displayName, centerContent: theme.centerContent },
       create: theme,
     });
   }

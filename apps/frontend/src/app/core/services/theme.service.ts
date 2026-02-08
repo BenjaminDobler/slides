@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import type { ThemeDto, CreateThemeDto, UpdateThemeDto } from '@slides/shared-types';
@@ -7,6 +7,9 @@ import type { ThemeDto, CreateThemeDto, UpdateThemeDto } from '@slides/shared-ty
 export class ThemeService {
   themes = signal<ThemeDto[]>([]);
   currentTheme = signal<ThemeDto | null>(null);
+
+  // Whether the current theme centers content vertically when it fits (no scaling)
+  centerContent = computed(() => this.currentTheme()?.centerContent ?? true);
 
   private styleEl: HTMLStyleElement | null = null;
 

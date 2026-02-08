@@ -15,6 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import type { ParsedSlide } from '@slides/markdown-parser';
 import { MermaidService } from '../../../core/services/mermaid.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { SlideRendererComponent } from '../../../shared/components/slide-renderer.component';
 
 @Component({
@@ -26,6 +27,10 @@ import { SlideRendererComponent } from '../../../shared/components/slide-rendere
 })
 export class SlidePreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   private mermaidService = inject(MermaidService);
+  private themeService = inject(ThemeService);
+
+  // Get centerContent from the current theme
+  centerContent = computed(() => this.themeService.centerContent());
 
   @ViewChild('slideRenderer') slideRendererEl!: SlideRendererComponent;
   @ViewChild('slideArea') slideAreaEl!: ElementRef<HTMLDivElement>;
