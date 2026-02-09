@@ -43,6 +43,23 @@ pub struct Theme {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateTheme {
+    pub name: String,
+    pub display_name: String,
+    pub css_content: String,
+    pub center_content: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateTheme {
+    pub display_name: Option<String>,
+    pub css_content: Option<String>,
+    pub center_content: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct Media {

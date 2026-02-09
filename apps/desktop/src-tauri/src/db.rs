@@ -466,6 +466,108 @@ impl Database {
         Ok(themes)
     }
 
+    pub async fn get_theme_by_name(&self, name: &str) -> AppResult<Theme> {
+        sqlx::query_as::<_, Theme>(
+            "SELECT id, name, display_name, css_content, is_default, center_content, user_id, created_at, updated_at FROM themes WHERE name = ?"
+        )
+        .bind(name)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| AppError::NotFound("Theme not found".to_string()))
+    }
+
+    pub async fn get_theme_by_id(&self, id: &str) -> AppResult<Theme> {
+        sqlx::query_as::<_, Theme>(
+            "SELECT id, name, display_name, css_content, is_default, center_content, user_id, created_at, updated_at FROM themes WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| AppError::NotFound("Theme not found".to_string()))
+    }
+
+    pub async fn create_theme(&self, data: CreateTheme) -> AppResult<Theme> {
+        let id = Uuid::new_v4().to_string();
+        let now = Utc::now();
+        let center_content = data.center_content.unwrap_or(true);
+
+        sqlx::query(
+            "INSERT INTO themes (id, name, display_name, css_content, is_default, center_content, user_id, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, 'local', ?, ?)"
+        )
+        .bind(&id)
+        .bind(&data.name)
+        .bind(&data.display_name)
+        .bind(&data.css_content)
+        .bind(center_content)
+        .bind(now)
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(Theme {
+            id,
+            name: data.name,
+            display_name: data.display_name,
+            css_content: data.css_content,
+            is_default: false,
+            center_content,
+            user_id: Some("local".to_string()),
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub async fn update_theme(&self, id: &str, data: UpdateTheme) -> AppResult<Theme> {
+        let existing = self.get_theme_by_id(id).await?;
+
+        if existing.is_default {
+            return Err(AppError::Forbidden("Cannot modify default themes".to_string()));
+        }
+
+        let now = Utc::now();
+        let display_name = data.display_name.unwrap_or(existing.display_name);
+        let css_content = data.css_content.unwrap_or(existing.css_content);
+        let center_content = data.center_content.unwrap_or(existing.center_content);
+
+        sqlx::query(
+            "UPDATE themes SET display_name = ?, css_content = ?, center_content = ?, updated_at = ? WHERE id = ?"
+        )
+        .bind(&display_name)
+        .bind(&css_content)
+        .bind(center_content)
+        .bind(now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(Theme {
+            id: existing.id,
+            name: existing.name,
+            display_name,
+            css_content,
+            is_default: existing.is_default,
+            center_content,
+            user_id: existing.user_id,
+            created_at: existing.created_at,
+            updated_at: now,
+        })
+    }
+
+    pub async fn delete_theme(&self, id: &str) -> AppResult<()> {
+        let existing = self.get_theme_by_id(id).await?;
+
+        if existing.is_default {
+            return Err(AppError::Forbidden("Cannot delete default themes".to_string()));
+        }
+
+        sqlx::query("DELETE FROM themes WHERE id = ? AND is_default = 0")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     // Layout Rules
     pub async fn list_layout_rules(&self) -> AppResult<Vec<LayoutRule>> {
         let rules = sqlx::query_as::<_, LayoutRule>(

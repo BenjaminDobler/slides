@@ -27,6 +27,10 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/presentations/{id}", delete(delete_presentation))
         // Themes & Layout
         .route("/themes", get(list_themes))
+        .route("/themes", post(create_theme))
+        .route("/themes/{name}", get(get_theme))
+        .route("/themes/{id}", put(update_theme))
+        .route("/themes/{id}", delete(delete_theme))
         .route("/layout-rules", get(list_layout_rules))
         // Media
         .route("/media", get(list_media))
@@ -100,6 +104,43 @@ async fn list_themes(State(state): State<SharedState>) -> AppResult<Json<Vec<The
     let state = state.read().await;
     let themes = state.db.list_themes().await?;
     Ok(Json(themes))
+}
+
+async fn get_theme(
+    State(state): State<SharedState>,
+    Path(name): Path<String>,
+) -> AppResult<Json<Theme>> {
+    let state = state.read().await;
+    let theme = state.db.get_theme_by_name(&name).await?;
+    Ok(Json(theme))
+}
+
+async fn create_theme(
+    State(state): State<SharedState>,
+    Json(data): Json<CreateTheme>,
+) -> AppResult<(StatusCode, Json<Theme>)> {
+    let state = state.read().await;
+    let theme = state.db.create_theme(data).await?;
+    Ok((StatusCode::CREATED, Json(theme)))
+}
+
+async fn update_theme(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+    Json(data): Json<UpdateTheme>,
+) -> AppResult<Json<Theme>> {
+    let state = state.read().await;
+    let theme = state.db.update_theme(&id, data).await?;
+    Ok(Json(theme))
+}
+
+async fn delete_theme(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<StatusCode> {
+    let state = state.read().await;
+    state.db.delete_theme(&id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn list_layout_rules(State(state): State<SharedState>) -> AppResult<Json<Vec<LayoutRuleResponse>>> {
