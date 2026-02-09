@@ -28,9 +28,7 @@ pub fn create_router(state: SharedState) -> Router {
         // Themes & Layout
         .route("/themes", get(list_themes))
         .route("/themes", post(create_theme))
-        .route("/themes/{name}", get(get_theme))
-        .route("/themes/{id}", put(update_theme))
-        .route("/themes/{id}", delete(delete_theme))
+        .route("/themes/{id}", get(get_theme).put(update_theme).delete(delete_theme))
         .route("/layout-rules", get(list_layout_rules))
         // Media
         .route("/media", get(list_media))
@@ -108,11 +106,17 @@ async fn list_themes(State(state): State<SharedState>) -> AppResult<Json<Vec<The
 
 async fn get_theme(
     State(state): State<SharedState>,
-    Path(name): Path<String>,
+    Path(id_or_name): Path<String>,
 ) -> AppResult<Json<Theme>> {
     let state = state.read().await;
-    let theme = state.db.get_theme_by_name(&name).await?;
-    Ok(Json(theme))
+    // Try by ID first, then by name
+    match state.db.get_theme_by_id(&id_or_name).await {
+        Ok(theme) => Ok(Json(theme)),
+        Err(_) => {
+            let theme = state.db.get_theme_by_name(&id_or_name).await?;
+            Ok(Json(theme))
+        }
+    }
 }
 
 async fn create_theme(
