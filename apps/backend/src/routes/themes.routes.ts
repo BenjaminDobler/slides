@@ -12,10 +12,16 @@ router.get('/', async (_req: Request, res: Response) => {
   res.json(themes);
 });
 
-router.get('/:name', async (req: Request, res: Response) => {
-  const theme = await prisma.theme.findUnique({
-    where: { name: req.params.name },
+router.get('/:idOrName', async (req: Request, res: Response) => {
+  // Try by ID first, then by name
+  let theme = await prisma.theme.findUnique({
+    where: { id: req.params.idOrName },
   });
+  if (!theme) {
+    theme = await prisma.theme.findUnique({
+      where: { name: req.params.idOrName },
+    });
+  }
   if (!theme) {
     res.status(404).json({ error: 'Theme not found' });
     return;
