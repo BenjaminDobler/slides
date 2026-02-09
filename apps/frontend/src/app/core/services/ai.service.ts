@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import type { AiProviderConfigDto, CreateAiProviderConfigDto } from '@slides/shared-types';
+import type { AiProviderConfigDto, CreateAiProviderConfigDto, UpdateAiProviderConfigDto, ModelInfoDto } from '@slides/shared-types';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -15,8 +15,16 @@ export class AiService {
     return this.http.post<AiProviderConfigDto>('/api/ai-config', dto);
   }
 
+  updateConfig(id: string, dto: UpdateAiProviderConfigDto): Observable<AiProviderConfigDto> {
+    return this.http.put<AiProviderConfigDto>(`/api/ai-config/${id}`, dto);
+  }
+
   deleteConfig(id: string): Observable<void> {
     return this.http.delete<void>(`/api/ai-config/${id}`);
+  }
+
+  getModels(provider: string): Observable<ModelInfoDto[]> {
+    return this.http.get<ModelInfoDto[]>(`/api/ai-config/${provider}/models`);
   }
 
   generate(prompt: string, provider: string, context?: string): Observable<{ content: string }> {

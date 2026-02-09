@@ -14,30 +14,71 @@
     <div class="provider-list">
       @for (c of configs(); track c.id) {
         <div class="provider-card">
-          <div class="provider-info">
-            <span class="provider-name">{{ c.providerName }}</span>
-            @if (c.model) {
-              <span class="provider-detail">Model: {{ c.model }}</span>
-            }
-            @if (c.baseUrl) {
-              <span class="provider-detail">Proxy: {{ c.baseUrl }}</span>
-            }
-          </div>
-          <button class="btn-delete" (click)="removeConfig(c.id)">Remove</button>
+          @if (editingConfig()?.id === c.id) {
+            <!-- Edit mode -->
+            <div class="edit-form">
+              <div class="edit-header">
+                <span class="provider-name">{{ c.providerName }}</span>
+              </div>
+              <input type="password" [(ngModel)]="editApiKey" placeholder="New API Key (leave empty to keep current)" />
+              <input type="text" [(ngModel)]="editBaseUrl" placeholder="Base URL (optional)" [value]="editBaseUrl" />
+              @if (editAvailableModels().length > 0) {
+                <select [(ngModel)]="editModel">
+                  <option value="">Select a model...</option>
+                  @for (m of editAvailableModels(); track m.id) {
+                    <option [value]="m.id">{{ m.displayName }}</option>
+                  }
+                </select>
+              } @else {
+                <input type="text" [(ngModel)]="editModel" placeholder="Model" />
+              }
+              <div class="edit-actions">
+                <button class="btn-save" (click)="saveEdit()">Save</button>
+                <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
+              </div>
+            </div>
+          } @else {
+            <!-- View mode -->
+            <div class="provider-info">
+              <span class="provider-name">{{ c.providerName }}</span>
+              @if (c.model) {
+                <span class="provider-detail">Model: {{ c.model }}</span>
+              }
+              @if (c.baseUrl) {
+                <span class="provider-detail">Proxy: {{ c.baseUrl }}</span>
+              }
+            </div>
+            <div class="provider-actions">
+              <button class="btn-edit" (click)="startEdit(c)">Edit</button>
+              <button class="btn-delete" (click)="removeConfig(c.id)">Remove</button>
+            </div>
+          }
         </div>
       }
     </div>
 
     <div class="add-provider">
       <h3>Add Provider</h3>
-      <select [(ngModel)]="newProvider">
+      <select [(ngModel)]="newProvider" (ngModelChange)="onProviderChange()">
         <option value="openai">OpenAI</option>
         <option value="anthropic">Anthropic</option>
         <option value="gemini">Gemini</option>
       </select>
       <input type="text" [(ngModel)]="newBaseUrl" placeholder="Base URL (optional, for proxy)" />
-      <input type="password" [(ngModel)]="newApiKey" placeholder="API Key (optional with proxy)" />
-      <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
+      <input type="password" [(ngModel)]="newApiKey" placeholder="API Key" (blur)="onProviderChange()" />
+      @if (availableModels().length > 0) {
+        <select [(ngModel)]="newModel">
+          <option value="">Select a model...</option>
+          @for (m of availableModels(); track m.id) {
+            <option [value]="m.id">{{ m.displayName }}</option>
+          }
+        </select>
+      } @else {
+        <input type="text" [(ngModel)]="newModel" placeholder="Model (optional)" />
+      }
+      @if (loadingModels()) {
+        <span class="loading-hint">Loading models...</span>
+      }
       <button (click)="addConfig()" [disabled]="!newApiKey && !newBaseUrl">Add</button>
     </div>
   </section>
