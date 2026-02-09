@@ -18,8 +18,10 @@ fn main() {
 
             // Start the backend server in a separate thread
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = start_backend(app_handle).await {
-                    tracing::error!("Failed to start backend: {}", e);
+                tracing::info!("Starting backend server...");
+                match start_backend(app_handle).await {
+                    Ok(_) => tracing::info!("Backend server stopped"),
+                    Err(e) => tracing::error!("Failed to start backend: {:?}", e),
                 }
             });
 
@@ -65,9 +67,17 @@ async fn start_backend(app_handle: tauri::AppHandle) -> Result<(), Box<dyn std::
                 .allow_headers(tower_http::cors::Any),
         );
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3332").await?;
-    tracing::info!("Backend server running on http://127.0.0.1:3332");
-    tracing::info!("MCP SSE endpoint available at http://127.0.0.1:3332/mcp/sse");
+    let listener = match tokio::net::TcpListener::bind("127.0.0.1:3332").await {
+        Ok(l) => {
+            tracing::info!("Backend server running on http://127.0.0.1:3332");
+            tracing::info!("MCP SSE endpoint available at http://127.0.0.1:3332/mcp/sse");
+            l
+        }
+        Err(e) => {
+            tracing::error!("Failed to bind to port 3332: {}. Is another instance running?", e);
+            return Err(e.into());
+        }
+    };
 
     axum::serve(listener, app).await?;
 
